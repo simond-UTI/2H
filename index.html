@@ -34,6 +34,10 @@
     .mini-table td.positive { color: #4ade80; }
     .mini-table td.negative { color: #f87171; }
     .mini-table tr:hover td { background: #151515; }
+    .macro-compact { width: max-content; }
+    .macro-compact th, .macro-compact td { padding: 6px 8px; }
+    .macro-compact .sec-end { border-right: 3px solid #555; }
+    .macro-compact th { background: #111; color: #888; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; }
     .mini-table tr.highlight-row td { background: rgba(74, 222, 128, 0.08); }
     .benchmark-grid { display: grid; grid-template-columns: auto repeat(4, 1fr); gap: 1px; background: #333; border: 1px solid #333; border-radius: 4px; overflow: hidden; max-width: 500px; }
     .benchmark-grid > div { background: #0a0a0a; padding: 8px 12px; font-size: 12px; }
@@ -278,10 +282,11 @@
   </div>
 
   <div class="portfolio-container" id="macroView" style="display:none;">
-    <div class="portfolio-section"><h3>Market Regime</h3><table class="mini-table" style="max-width:900px;"><thead><tr><th>Indicator</th><th class="num">Level</th><th>Regime</th><th>Velocity</th><th>Implication</th></tr></thead><tbody id="macro-regime-body"></tbody></table></div>
-    <div class="portfolio-section"><h3>Sector Performance</h3><table class="mini-table" style="max-width:900px;"><thead><tr><th>Sector</th><th class="num">#</th><th class="num">1D%</th><th class="num">1M%</th><th class="num">YTD%</th><th class="num">Brdth</th><th>Status</th></tr></thead><tbody id="macro-sectors-body"></tbody></table></div>
-    <div class="portfolio-section"><h3>Volatility</h3><table class="mini-table" style="max-width:800px;"><thead><tr><th>Index</th><th class="num">Level</th><th class="num">DoD%</th><th class="num">WoW%</th><th class="num">MoM%</th><th>State</th></tr></thead><tbody id="macro-vol-body"></tbody></table></div>
+    <div class="portfolio-section"><h3>Market Regime</h3><table class="mini-table macro-compact"><thead><tr><th>Symbol</th><th class="num sec-end">Level</th><th class="num">Trend</th><th class="num sec-end">Mom</th><th class="sec-end">State</th><th class="num">1d%</th><th class="num sec-end">5d%</th><th class="num">RSI</th></tr></thead><tbody id="macro-regime-body"></tbody></table></div>
+    <div class="portfolio-section"><h3>Sector Performance</h3><table class="mini-table macro-compact"><thead><tr><th>Sector</th><th class="num sec-end">#</th><th class="num">Trend</th><th class="num sec-end">Mom</th><th class="sec-end">State</th><th class="num">1D%</th><th class="num sec-end">5D%</th><th class="num">Brdth</th></tr></thead><tbody id="macro-sectors-body"></tbody></table></div>
+    <div class="portfolio-section"><h3>Volatility</h3><table class="mini-table macro-compact"><thead><tr><th>Symbol</th><th class="num sec-end">Level</th><th class="num">Trend</th><th class="num sec-end">Mom</th><th class="sec-end">State</th><th class="num">1D%</th><th class="num sec-end">5D%</th><th class="num">RSI</th></tr></thead><tbody id="macro-vol-body"></tbody></table></div>
     <div class="portfolio-section"><h3>Yield Curve</h3><table class="mini-table" style="max-width:700px;"><thead><tr><th>Series</th><th class="num">Yield</th><th class="num">DoD bps</th><th class="num">WoW bps</th><th class="num">MoM bps</th></tr></thead><tbody id="macro-yield-body"></tbody></table></div>
+    <div class="portfolio-section"><h3>$ Correlations (vs DXY)</h3><table class="mini-table macro-compact"><thead><tr><th>Asset</th><th class="num">15D</th><th class="num">30D</th><th class="num">90D</th><th class="num">120D</th><th class="num sec-end">180D</th><th class="sec-end">Regime</th><th>Insight</th></tr></thead><tbody id="macro-usdcorr-body"></tbody></table></div>
     <div class="portfolio-section"><h3>Hedgeye Quads</h3><table class="mini-table" style="max-width:500px;"><thead><tr><th>Country</th></tr></thead><tbody id="macro-quads-body"></tbody></table></div>
   </div>
 
@@ -376,8 +381,8 @@
     let currentTab='positions';
     document.querySelectorAll('.tab-btn').forEach(btn=>{btn.addEventListener('click',()=>{const tab=btn.dataset.tab;if(tab===currentTab)return;currentTab=tab;document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');const showTable=(tab==='positions'||tab==='universe');document.getElementById('positionsView').style.display=showTable?'block':'none';document.getElementById('radarView').style.display=tab==='radar'?'block':'none';document.getElementById('portfolioView').style.display=tab==='portfolio'?'block':'none';document.getElementById('riskrangesView').style.display=tab==='riskranges'?'block':'none';document.getElementById('macroView').style.display=tab==='macro'?'block':'none';document.getElementById('positionsFilters').style.display=tab==='positions'?'flex':'none';document.getElementById('universeFilters').style.display=tab==='universe'?'flex':'none';document.getElementById('radarFilters').style.display=tab==='radar'?'flex':'none';document.getElementById('portfolioFilters').style.display=tab==='portfolio'?'flex':'none';document.getElementById('riskrangesFilters').style.display=tab==='riskranges'?'flex':'none';document.getElementById('statsBar').style.display=showTable?'flex':'none';searchTerm='';stateFilter='';crossFilter='';document.getElementById('searchPositions').value='';document.getElementById('searchUniverse').value='';document.getElementById('stateFilterPositions').value='';document.getElementById('stateFilterUniverse').value='';document.getElementById('crossFilterPositions').value='';document.getElementById('crossFilterUniverse').value='';if(tab==='positions'){activeFilters=new Set(['POS']);buildHeader();renderTable();}else if(tab==='universe'){activeFilters=new Set(['UK']);groupFilter='';document.getElementById('groupFilter').value='';buildHeader();renderTable();}else if(tab==='radar'){loadRadar();}else if(tab==='portfolio'){fetchPortfolioData();}else if(tab==='riskranges'){fetchRiskRanges();}else if(tab==='macro'){fetchMacroData();}});});
     
-let radarLoaded=false;
-function loadRadar(){if(!radarLoaded){const frame=document.getElementById('radarFrame');frame.src='https://simond-uti.github.io/2H/crossover_radar';radarLoaded=true;}}
+    let radarLoaded=false;
+    function loadRadar(){if(!radarLoaded){const frame=document.getElementById('radarFrame');frame.src='crossover_radar.html';radarLoaded=true;}}
     
     async function fetchPortfolioData(){try{const[perfRes,accountsRes,groupsRes,benchmarkRes]=await Promise.all([sbGet('v_portfolio_performance'),fetch(`${SB_URL}/rest/v1/positions?select=account,symbol,value_gbp`,{headers:hdrs}).then(r=>r.json()),sbGet('v_positions_with_sizing','select=symbol,value_gbp,group_name,sub_group,portfolio_pct'),fetch(`${SB_URL}/rest/v1/v_crossover_states?symbol=in.(SPX,NDX,RUT)&select=symbol,perf_1d,perf_5d,perf_1m,perf_3m`,{headers:hdrs}).then(r=>r.json())]);renderPerformance(perfRes);renderAccounts(accountsRes);renderGroups(groupsRes);renderBenchmarks(perfRes,benchmarkRes);}catch(err){console.error('Failed to fetch portfolio data:',err);}}
     
@@ -490,11 +495,52 @@ function loadRadar(){if(!radarLoaded){const frame=document.getElementById('radar
       }).join('');
     }
     
-    async function fetchMacroData(){try{const[summaryRes,sectorsRes,volRes,yieldRes,quadsRes]=await Promise.all([sbGet('v_macro_summary'),sbGet('v_macro_group_performance'),sbGet('v_macro_volatility_grid'),sbGet('v_macro_yield_curve'),sbGet('quads')]);if(summaryRes.length)renderMacroSummary(summaryRes);if(sectorsRes.length)renderMacroSectors(sectorsRes);if(volRes.length)renderMacroVol(volRes);if(yieldRes.length)renderMacroYield(yieldRes);if(quadsRes.length)renderMacroQuads(quadsRes);}catch(err){console.error('Failed to fetch macro data:',err);}}
-    function renderMacroSummary(data){const regimeIndicators=[{item:'DXY',level:'97.77',status:'⛔ AVOID',notes:'USD Index: Trend -10 bearish, momentum weak'},{item:'GBP/USD',level:'1.2478',status:'🟢 BUY (BREAKOUT)',notes:'Pound strengthening: Z=2.47, trend 60 building'},{item:'EUR/USD',level:'1.0432',status:'🟢 BUY (BREAKOUT)',notes:'Euro strengthening: Z=2.24, trend 52 building'},{item:'VIX',level:'21.0',status:'⚪ NEUTRAL',notes:'Volatility elevated but not extreme'}];document.getElementById('macro-regime-body').innerHTML=regimeIndicators.map(d=>'<tr><td><strong>'+d.item+'</strong></td><td class="num">'+d.level+'</td><td>'+d.status+'</td><td>-</td><td style="color:#888;font-size:11px;max-width:300px;">'+d.notes+'</td></tr>').join('');}
-    function renderMacroSectors(data){data.sort((a,b)=>(parseFloat(b['ytd_pct'])||0)-(parseFloat(a['ytd_pct'])||0));document.getElementById('macro-sectors-body').innerHTML=data.map(d=>{const d1=parseFloat(d['avg_1d_pct'])||0,m1=parseFloat(d['avg_1m_pct'])||0,ytd=parseFloat(d['ytd_pct'])||0;return'<tr><td><strong>'+d.group_name+'</strong></td><td class="num">'+d.ticker_count+'</td><td class="num" style="color:'+(d1>=0?'#4ade80':'#f87171')+'">'+d1.toFixed(1)+'%</td><td class="num" style="color:'+(m1>=0?'#4ade80':'#f87171')+'">'+m1.toFixed(1)+'%</td><td class="num" style="color:'+(ytd>=0?'#4ade80':'#f87171')+'">'+ytd.toFixed(1)+'%</td><td class="num">'+d.breadth+'</td><td>'+(d.status||'-')+'</td></tr>';}).join('');}
-    function renderMacroVol(data){document.getElementById('macro-vol-body').innerHTML=data.map(d=>{const dod=parseFloat(d.dod_pct)||0,wow=parseFloat(d.wow_pct)||0,mom=parseFloat(d.mom_pct);return'<tr><td><strong>'+d.vol_index+'</strong></td><td class="num">'+parseFloat(d.current_level).toFixed(2)+'</td><td class="num" style="color:'+(dod>=0?'#f87171':'#4ade80')+'">'+dod.toFixed(1)+'%</td><td class="num" style="color:'+(wow>=0?'#f87171':'#4ade80')+'">'+wow.toFixed(1)+'%</td><td class="num" style="color:'+(isNaN(mom)?'#666':(mom>=0?'#f87171':'#4ade80'))+'">'+(isNaN(mom)?'-':mom.toFixed(1)+'%')+'</td><td>'+(d.vol_state||'-')+'</td></tr>';}).join('');}
+
+    function macroBg(val,min,max){if(val===null||val===undefined||isNaN(val))return'';const range=max-min,clamped=Math.max(min,Math.min(max,val)),n=(clamped-min)/range;if(n<0.5){const i=(0.5-n)*2,a=0.6*Math.pow(i,0.7);return'background:rgba(200,40,40,'+a.toFixed(2)+')';}else{const i=(n-0.5)*2,a=0.6*Math.pow(i,0.7);return'background:rgba(30,160,70,'+a.toFixed(2)+')';}}
+    function macroRsiBg(v){if(v>=70)return'background:rgba(200,40,40,0.4)';if(v>=60)return'background:rgba(200,40,40,0.15)';if(v<=30)return'background:rgba(30,160,70,0.4)';if(v<=40)return'background:rgba(30,160,70,0.15)';return'';}
+    async function fetchMacroData(){try{const[summaryRes,sectorsRes,volRes,yieldRes,quadsRes,usdCorrRes]=await Promise.all([sbGet('v_macro_regime'),sbGet('v_macro_group_performance_v2'),sbGet('v_macro_volatility_v2'),sbGet('v_macro_yield_curve'),sbGet('quads'),sbGet('v_macro_usd_correlations')]);if(summaryRes.length)renderMacroSummary(summaryRes);if(sectorsRes.length)renderMacroSectors(sectorsRes);if(volRes.length)renderMacroVol(volRes);if(yieldRes.length)renderMacroYield(yieldRes);if(quadsRes.length)renderMacroQuads(quadsRes);if(usdCorrRes.length)renderUsdCorr(usdCorrRes);}catch(err){console.error('Failed to fetch macro data:',err);}}
+    function renderMacroSummary(data){
+      const stateNum={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6};
+      let lastCat='';
+      document.getElementById('macro-regime-body').innerHTML=data.map(d=>{
+        const catRow=d.category!==lastCat?'<tr><td colspan="8" style="background:#1a1a1a;color:#666;font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:1px;">'+d.category+'</td></tr>':'';
+        lastCat=d.category;
+        const t=parseFloat(d.trend)||0;
+        const m=parseFloat(d.momentum)||0;
+        const p1=parseFloat(d.perf_1d)||0;
+        const p5=parseFloat(d.perf_5d)||0;
+        const rsi=parseFloat(d.rsi)||0;
+        const sn=d.state_name||'';
+        const si=stateNum[sn]||0;
+        return catRow+'<tr><td><strong>'+d.symbol+'</strong></td><td class="num sec-end">'+d.level+'</td><td class="num" style="'+macroBg(t,-100,100)+'">'+t.toFixed(1)+'</td><td class="num sec-end" style="'+macroBg(m,-100,100)+'">'+m.toFixed(1)+'</td><td class="sec-end"><span class="state-badge state-'+si+'">'+sn+'</span></td><td class="num" style="'+macroBg(p1,-3,3)+'">'+(p1>=0?'+':'')+p1.toFixed(2)+'%</td><td class="num sec-end" style="'+macroBg(p5,-5,5)+'">'+(p5>=0?'+':'')+p5.toFixed(2)+'%</td><td class="num" style="'+macroRsiBg(rsi)+'">'+rsi+'</td></tr>';
+      }).join('');}
+    function renderMacroSectors(data){
+      const stateColor={'BULL ACCEL':'#4ade80','BULL ESTAB':'#22c55e','BULL FADING':'#60a5fa','EARLY RECV':'#facc15','BEAR DECEL':'#fb923c','BEAR ACCEL':'#f87171'};
+      const stateNum={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6};
+      data.sort((a,b)=>(parseFloat(b.avg_trend)||0)-(parseFloat(a.avg_trend)||0));
+      document.getElementById('macro-sectors-body').innerHTML=data.map(d=>{
+        const t=parseFloat(d.avg_trend)||0,m=parseFloat(d.avg_momentum)||0;
+        const d1=parseFloat(d.avg_1d_pct)||0,d5=parseFloat(d.avg_5d_pct)||0;
+        const br=parseFloat(d.breadth)||0;
+        const sn=d.state_name||'';
+        const sc=stateColor[sn]||'#888';
+        const si=stateNum[sn]||0;
+        return'<tr><td><strong>'+d.group_name+'</strong></td><td class="num sec-end">'+d.ticker_count+'</td><td class="num" style="'+macroBg(t,-100,100)+'">'+t.toFixed(1)+'</td><td class="num sec-end" style="'+macroBg(m,-100,100)+'">'+m.toFixed(1)+'</td><td class="sec-end"><span class="state-badge state-'+si+'">'+sn+'</span></td><td class="num" style="'+macroBg(d1,-3,3)+'">'+(d1>=0?'+':'')+d1.toFixed(2)+'%</td><td class="num sec-end" style="'+macroBg(d5,-5,5)+'">'+(d5>=0?'+':'')+d5.toFixed(2)+'%</td><td class="num">'+br+'%</td></tr>';
+      }).join('');}
+    function renderMacroVol(data){
+      const stateColor={'BULL ACCEL':'#4ade80','BULL ESTAB':'#22c55e','BULL FADING':'#60a5fa','EARLY RECV':'#facc15','BEAR DECEL':'#fb923c','BEAR ACCEL':'#f87171'};
+      const stateNum={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6};
+      document.getElementById('macro-vol-body').innerHTML=data.map(d=>{
+        const t=parseFloat(d.trend)||0,m=parseFloat(d.momentum)||0;
+        const p1=parseFloat(d.perf_1d)||0,p5=parseFloat(d.perf_5d)||0;
+        const rsi=parseFloat(d.rsi)||0;
+        const sn=d.state_name||'';
+        const sc=stateColor[sn]||'#888';
+        const si=stateNum[sn]||0;
+        return'<tr><td><strong>'+d.symbol+'</strong></td><td class="num sec-end">'+d.level+'</td><td class="num" style="'+macroBg(t,-100,100)+'">'+t.toFixed(1)+'</td><td class="num sec-end" style="'+macroBg(m,-100,100)+'">'+m.toFixed(1)+'</td><td class="sec-end"><span class="state-badge state-'+si+'">'+sn+'</span></td><td class="num" style="'+macroBg(p1,-3,3)+'">'+(p1>=0?'+':'')+p1.toFixed(2)+'%</td><td class="num sec-end" style="'+macroBg(p5,-5,5)+'">'+(p5>=0?'+':'')+p5.toFixed(2)+'%</td><td class="num" style="'+macroRsiBg(rsi)+'">'+rsi+'</td></tr>';
+      }).join('');}
     function renderMacroYield(data){data.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));document.getElementById('macro-yield-body').innerHTML=data.map(d=>{const dod=parseFloat(d.dod_bps)||0,wow=parseFloat(d.wow_bps)||0,mom=parseFloat(d.mom_bps)||0;return'<tr><td><strong>'+d.series+'</strong></td><td class="num">'+parseFloat(d.current_yield).toFixed(3)+'</td><td class="num" style="color:'+(dod>=0?'#f87171':'#4ade80')+'">'+dod.toFixed(1)+'</td><td class="num" style="color:'+(wow>=0?'#f87171':'#4ade80')+'">'+wow.toFixed(1)+'</td><td class="num" style="color:'+(mom>=0?'#f87171':'#4ade80')+'">'+mom.toFixed(1)+'</td></tr>';}).join('');}
+    function renderUsdCorr(data){const corrBg=v=>{if(v===null||isNaN(v))return'';const abs=Math.abs(v);if(abs<0.15)return'background:rgba(100,100,100,0.15);';if(v>0.4)return'background:rgba(74,222,128,0.25);';if(v>0.15)return'background:rgba(74,222,128,0.12);';if(v<-0.4)return'background:rgba(248,113,113,0.25);';return'background:rgba(248,113,113,0.12);';};const fmtCorr=v=>{const n=parseFloat(v);if(isNaN(n))return'-';return(n>=0?'+':'')+n.toFixed(2);};document.getElementById('macro-usdcorr-body').innerHTML=data.map(d=>{const d15=parseFloat(d['15D']),d30=parseFloat(d['30D']),d90=parseFloat(d['90D']),d120=parseFloat(d['120D']),d180=parseFloat(d['180D']);const regime=d.regime_30d||'';const insight=d.insight&&d.insight!=='null'?d.insight:'';return'<tr><td><strong>'+d.metric+'</strong></td><td class="num" style="'+corrBg(d15)+'">'+fmtCorr(d15)+'</td><td class="num" style="'+corrBg(d30)+'">'+fmtCorr(d30)+'</td><td class="num" style="'+corrBg(d90)+'">'+fmtCorr(d90)+'</td><td class="num" style="'+corrBg(d120)+'">'+fmtCorr(d120)+'</td><td class="num sec-end" style="'+corrBg(d180)+'">'+fmtCorr(d180)+'</td><td class="sec-end" style="font-size:11px;">'+regime+'</td><td style="font-size:10px;color:#ccc;">'+insight+'</td></tr>';}).join('');}
     function renderMacroQuads(data){const quarters=[...new Set(data.map(d=>d.quarter))].sort();const countries={};data.forEach(d=>{if(!countries[d.country])countries[d.country]={};countries[d.country][d.quarter]=d.quad;});const sortOrder=['United States','United Kingdom'];const sortedCountries=Object.keys(countries).sort((a,b)=>{const aIdx=sortOrder.indexOf(a),bIdx=sortOrder.indexOf(b);if(aIdx>=0&&bIdx>=0)return aIdx-bIdx;if(aIdx>=0)return-1;if(bIdx>=0)return 1;return a.localeCompare(b);});const quadColor=q=>{if(q===1)return'#4ade80';if(q===2)return'#facc15';if(q===3)return'#fb923c';if(q===4)return'#f87171';return'#666';};const currentQ=quarters.length>1?quarters[1]:quarters[0];const headerRow=document.querySelector('#macro-quads-body').closest('table').querySelector('thead tr');headerRow.innerHTML='<th>Country</th>'+quarters.map(q=>'<th class="num"'+(q===currentQ?' style="background:#1a2a1a;"':'')+'>'+q.replace('20','\'')+'</th>').join('');document.getElementById('macro-quads-body').innerHTML=sortedCountries.map(country=>{const c=countries[country];return'<tr><td><strong>'+country+'</strong></td>'+quarters.map(q=>'<td class="num" style="'+(q===currentQ?'background:#1a2a1a;font-weight:600;':'')+'color:'+quadColor(c[q])+'">Q'+(c[q]||'-')+'</td>').join('')+'</tr>';}).join('');}
     
     buildHeader();
