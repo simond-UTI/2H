@@ -267,7 +267,7 @@
     <div class="portfolio-section">
       <h3>Hedgeye Risk Ranges - <span id="rr-date">-</span></h3>
       <table class="mini-table rr-table" style="max-width:950px;">
-        <thead><tr><th style="width:70px;">Symbol</th><th style="width:70px;">Trend</th><th class="num" style="width:70px;">Buy</th><th class="num" style="width:70px;">Sell</th><th class="num" style="width:70px;">Prev</th><th colspan="2" style="width:90px;">Range</th><th class="num rr-divider" style="width:70px;">Live</th><th colspan="2" style="width:90px;">Range</th><th class="num" style="width:60px;">Chg%</th></tr></thead>
+        <thead><tr><th style="width:70px;">Symbol</th><th style="width:150px;">Name</th><th style="width:70px;">Trend</th><th class="num" style="width:70px;">Buy</th><th class="num" style="width:70px;">Sell</th><th class="num" style="width:70px;">Prev</th><th colspan="2" style="width:90px;">Range</th><th class="num rr-divider" style="width:70px;">Live</th><th colspan="2" style="width:90px;">Range</th><th class="num" style="width:60px;">Chg%</th></tr></thead>
         <tbody id="rr-body"></tbody>
       </table>
     </div>
@@ -425,8 +425,10 @@
       return '';
     }
     function rrTrendColor(t) {
-      if (t === 'Bullish') return '#4ade80';
-      if (t === 'Bearish') return '#f87171';
+      if (!t) return '#888';
+      const u = t.toUpperCase();
+      if (u === 'BULLISH') return '#4ade80';
+      if (u === 'BEARISH') return '#f87171';
       return '#888';
     }
     function rrMakeBar(rangePct) {
@@ -451,7 +453,7 @@
       activeData.forEach(d => { const cat = d.category || 'OTHER'; if (!categories[cat]) categories[cat] = []; categories[cat].push(d); });
       let html = '';
       for (const [category, items] of Object.entries(categories)) {
-        html += `<tr><td colspan="11" class="rr-cat">${category}</td></tr>`;
+        html += `<tr><td colspan="12" class="rr-cat">${category}</td></tr>`;
         items.forEach(d => {
           const tc = rrTrendColor(d.trend);
           const buy = parseFloat(d.buy_level), sell = parseFloat(d.sell_level), prev = parseFloat(d.prev_close);
@@ -460,8 +462,10 @@
           let rangeTag = '';
           if (d.range_change === 'tightening') rangeTag = '<span class="rr-range-tag rr-tightening">tight</span>';
           else if (d.range_change === 'widening') rangeTag = '<span class="rr-range-tag rr-widening">wide</span>';
+          const descName = d.description || d.name || '';
           html += '<tr>' +
             `<td><strong>${d.symbol}</strong>${rangeTag}</td>` +
+            `<td style="color:#888;font-size:11px;">${descName}</td>` +
             `<td><span style="color:${tc};font-weight:600;">${d.trend}</span></td>` +
             `<td class="num" style="color:#4ade80;">${rrFormatPrice(buy)}${rrArrow(d.buy_arrow)}</td>` +
             `<td class="num" style="color:#f87171;">${rrFormatPrice(sell)}${rrArrow(d.sell_arrow)}</td>` +
@@ -489,9 +493,11 @@
     function renderOutBucket(data) {
       const body = document.getElementById('rr-outbucket-body');
       if (!data || !data.length) { body.innerHTML = '<tr><td colspan="4" style="color:#666">None</td></tr>'; return; }
-      body.innerHTML = data.map(d => {
+      const seen = new Set();
+      const deduped = data.filter(d => { if (seen.has(d.symbol)) return false; seen.add(d.symbol); return true; });
+      body.innerHTML = deduped.map(d => {
         const tc = rrTrendColor(d.trend);
-        return `<tr class="rr-outbucket-row"><td><strong>${d.symbol}</strong></td><td style="color:#888;">${d.name || '-'}</td><td><span style="color:${tc};font-weight:500;">${d.trend}</span></td><td class="rr-outbucket-date">${d.out_bucket_date || '-'}</td></tr>`;
+        return `<tr class="rr-outbucket-row"><td><strong>${d.symbol}</strong></td><td style="color:#888;">${d.name || '-'}</td><td><span style="color:${tc};font-weight:600;">${d.trend}</span></td><td class="rr-outbucket-date">${d.out_bucket_date || '-'}</td></tr>`;
       }).join('');
     }
     
