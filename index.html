@@ -114,6 +114,7 @@
     .action-watch { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
     .action-hold { background: rgba(96, 165, 250, 0.15); color: #93bbf5; }
     .action-reason { font-size: 9px; color: #888; margin-left: 3px; }
+    .action-new { color: #fbbf24; font-size: 9px; margin-left: 3px; font-weight: 600; }
     .rr-divider { border-left: 2px solid #444 !important; }
     .rr-table { border-collapse: collapse; }
     .rr-table th, .rr-table td { padding: 7px 12px; }
@@ -323,7 +324,6 @@
     
     let allData=[],positionSymbols=new Set(),allocationData={},activeFilters=new Set(['POS']),groupFilter='',stateFilter='',crossFilter='',signalFilter='',searchTerm='',dataSource='intraday';
     
-    // Column definitions — RSI removed, signal from server
     const sectionsBase=[
       {id:'info',label:'',cols:1},
       {id:'state',label:'STATE',cols:3},
@@ -331,7 +331,7 @@
       {id:'levels',label:'LEVELS',cols:2},
       {id:'velocity',label:'VELOCITY',cols:3},
       {id:'flags',label:'FLAGS',cols:1},
-      {id:'rank',label:'RANK',cols:3},
+      {id:'rank',label:'EDGE RANK',cols:3},
       {id:'price',label:'PRICE %',cols:3}
     ];
     const sectionsWithSize=[
@@ -342,7 +342,7 @@
       {id:'levels',label:'LEVELS',cols:2},
       {id:'velocity',label:'VELOCITY',cols:3},
       {id:'flags',label:'FLAGS',cols:1},
-      {id:'rank',label:'RANK',cols:3},
+      {id:'rank',label:'EDGE RANK',cols:3},
       {id:'price',label:'PRICE %',cols:3}
     ];
     
@@ -353,7 +353,7 @@
       {key:'trend',label:'Trnd',section:'levels',numeric:true,format:'gradient',min:-100,max:100},{key:'mom',label:'Mom',section:'levels',numeric:true,format:'gradient',min:-100,max:100,sectionEnd:true},
       {key:'t_roc_5d',label:'T.5d',section:'velocity',numeric:true,format:'gradient',min:-30,max:30},{key:'m_roc_5d',label:'m5d',section:'velocity',numeric:true,format:'gradient',min:-30,max:30},{key:'m_minus_t',label:'M-T',section:'velocity',numeric:true,format:'gradient',min:-80,max:80,sectionEnd:true},
       {key:'extreme',label:'Ext',section:'flags',sortType:'ext',sectionEnd:true},
-      {key:'range_pos_20d',label:'20d%',section:'rank',numeric:true,format:'pct100'},{key:'rank',label:'Rank',section:'rank',numeric:true,format:'rank'},{key:'rank_move',label:'R.Mv',section:'rank',numeric:true,format:'gradient',min:-30,max:30,sectionEnd:true},
+      {key:'range_pos_20d',label:'20d%',section:'rank',numeric:true,format:'pct100'},{key:'edge_rank',label:'Rank',section:'rank',numeric:true,format:'rank'},{key:'edge_rank_move',label:'R.Mv',section:'rank',numeric:true,format:'gradient',min:-30,max:30,sectionEnd:true},
       {key:'perf_1d',label:'1d%',section:'price',numeric:true,format:'gradient',min:-5,max:5},{key:'perf_5d',label:'5d%',section:'price',numeric:true,format:'gradient',min:-10,max:10},{key:'perf_1m',label:'1m%',section:'price',numeric:true,format:'gradient',min:-20,max:20}
     ];
     
@@ -365,7 +365,7 @@
       {key:'trend',label:'Trnd',section:'levels',numeric:true,format:'gradient',min:-100,max:100},{key:'mom',label:'Mom',section:'levels',numeric:true,format:'gradient',min:-100,max:100,sectionEnd:true},
       {key:'t_roc_5d',label:'T.5d',section:'velocity',numeric:true,format:'gradient',min:-30,max:30},{key:'m_roc_5d',label:'m5d',section:'velocity',numeric:true,format:'gradient',min:-30,max:30},{key:'m_minus_t',label:'M-T',section:'velocity',numeric:true,format:'gradient',min:-80,max:80,sectionEnd:true},
       {key:'extreme',label:'Ext',section:'flags',sortType:'ext',sectionEnd:true},
-      {key:'range_pos_20d',label:'20d%',section:'rank',numeric:true,format:'pct100'},{key:'rank',label:'Rank',section:'rank',numeric:true,format:'rank'},{key:'rank_move',label:'R.Mv',section:'rank',numeric:true,format:'gradient',min:-30,max:30,sectionEnd:true},
+      {key:'range_pos_20d',label:'20d%',section:'rank',numeric:true,format:'pct100'},{key:'edge_rank',label:'Rank',section:'rank',numeric:true,format:'rank'},{key:'edge_rank_move',label:'R.Mv',section:'rank',numeric:true,format:'gradient',min:-30,max:30,sectionEnd:true},
       {key:'perf_1d',label:'1d%',section:'price',numeric:true,format:'gradient',min:-5,max:5},{key:'perf_5d',label:'5d%',section:'price',numeric:true,format:'gradient',min:-10,max:10},{key:'perf_1m',label:'1m%',section:'price',numeric:true,format:'gradient',min:-20,max:20}
     ];
     
@@ -401,7 +401,8 @@
       const sig=row.signal, reason=row.signal_reason;
       if(!sig)return'-';
       const cls={'CUT':'action-cut','BUY':'action-buy','WATCH':'action-watch','HOLD':'action-hold'}[sig]||'';
-      return`<span class="action-pill ${cls}">${reason}</span><span class="action-reason">${sig}</span>`;
+      const chg=row.action_changed?'<span class="action-new">⚡NEW</span>':'';
+      return`<span class="action-pill ${cls}">${reason}</span><span class="action-reason">${sig}</span>${chg}`;
     }
     
     function formatCell(row,col){
@@ -432,7 +433,7 @@
     
     function buildSectionHeaders(){const tr=document.getElementById('sectionHead');const sections=getSections();let html='<th class="section-header freeze-col col-symbol"></th>';sections.slice(1).forEach(sec=>{html+=`<th class="section-header" colspan="${sec.cols}">${sec.label}</th>`;});tr.innerHTML=html;}
     
-    function buildHeader(){buildSectionHeaders();const columns=getColumns();const tr=document.getElementById('tableHead');tr.innerHTML=columns.map(col=>{const classes=[col.numeric?'num':'',col.sectionEnd?'section-end':'',col.freeze?'freeze-col '+col.freezeClass:''].filter(Boolean).join(' ');return`<th class="${classes}" data-key="${col.key}">${col.label}</th>`;}).join('');tr.querySelectorAll('th').forEach(th=>{th.addEventListener('click',()=>{const key=th.dataset.key;if(sortKey===key){sortClickCount++;if(sortClickCount>=3){sortKey='signal_priority';sortDir='asc';sortClickCount=0;}else{sortDir=sortDir==='asc'?'desc':'asc';}}else{sortKey=key;sortDir=(key==='rank'||key==='signal_priority'||key==='_action'||key==='state')?'asc':'desc';sortClickCount=1;}renderTable();});});}
+    function buildHeader(){buildSectionHeaders();const columns=getColumns();const tr=document.getElementById('tableHead');tr.innerHTML=columns.map(col=>{const classes=[col.numeric?'num':'',col.sectionEnd?'section-end':'',col.freeze?'freeze-col '+col.freezeClass:''].filter(Boolean).join(' ');return`<th class="${classes}" data-key="${col.key}">${col.label}</th>`;}).join('');tr.querySelectorAll('th').forEach(th=>{th.addEventListener('click',()=>{const key=th.dataset.key;if(sortKey===key){sortClickCount++;if(sortClickCount>=3){sortKey='signal_priority';sortDir='asc';sortClickCount=0;}else{sortDir=sortDir==='asc'?'desc':'asc';}}else{sortKey=key;sortDir=(key==='edge_rank'||key==='signal_priority'||key==='_action'||key==='state')?'asc':'desc';sortClickCount=1;}renderTable();});});}
     
     function renderTable(){
       const columns=getColumns();
@@ -469,7 +470,6 @@
         return 0;
       });
       
-      // Stats — signal counts from server data
       const sigCnt=s=>data.filter(r=>r.signal===s).length;
       const cnt=s=>data.filter(r=>r.state===s).length;
       document.getElementById('cntCut').textContent=sigCnt('CUT');
@@ -511,7 +511,6 @@
       });
     }
     
-    // Signal filter clicks in stats bar
     document.querySelectorAll('.stat.clickable[data-signal]').forEach(el=>{
       el.addEventListener('click',()=>{
         const s=el.dataset.signal;
@@ -525,12 +524,10 @@
     async function fetchPositions(){try{const posRes=await fetch(`${SB_URL}/rest/v1/positions?select=symbol`,{headers:hdrs});if(posRes.ok){const positions=await posRes.json();positionSymbols=new Set(positions.map(p=>p.symbol));if(positionSymbols.has('BIT-XBTE'))positionSymbols.add('BTCUSD');}const allocRes=await fetch(`${SB_URL}/rest/v1/v_positions_with_sizing?select=symbol,portfolio_pct,effective_max_pct,pct_of_max,value_gbp`,{headers:hdrs});if(allocRes.ok){const allocations=await allocRes.json();allocationData={};allocations.forEach(a=>{if(a.symbol&&a.symbol!=='CASH'&&a.symbol!=='Cash'){const entry={port_pct:(parseFloat(a.portfolio_pct)||0).toFixed(1),max_pct:(parseFloat(a.effective_max_pct)||0).toFixed(1),pct_of_max:parseInt(a.pct_of_max)||0,value:parseFloat(a.value_gbp)||0};allocationData[a.symbol]=entry;if(a.symbol==='BIT-XBTE')allocationData['BTCUSD']=entry;}});}}catch(err){console.error('Failed to fetch positions:',err);}}
     
     async function fetchData(){try{await fetchPositions();
-      // *** KEY CHANGE: reads from v_signals / v_signals_live ***
-      const viewName=dataSource==='intraday'?'v_signals_live':'v_signals';
+      const viewName=dataSource==='intraday'?'v_edge_rank_live':'v_edge_rank';
       const res=await fetch(`${SB_URL}/rest/v1/${viewName}?select=*`,{headers:hdrs});
       if(!res.ok)throw new Error('Fetch failed');allData=await res.json();const latest=allData.reduce((max,r)=>{const t=new Date(r.bar_timestamp);return t>max?t:max;},new Date(0));const timeStr=latest.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});const dateStr=latest.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});document.getElementById('updated').textContent=`${dataSource==='intraday'?'Live':'EOD'}: ${dateStr} ${timeStr}`;rebuildGroupDropdown();buildHeader();renderTable();}catch(err){console.error(err);document.getElementById('tableBody').innerHTML='<tr><td colspan="32" class="loading">Error loading data</td></tr>';}}
     
-    // Filter event listeners
     document.querySelectorAll('.filter-btn[data-filter="EXT"]').forEach(btn=>{btn.addEventListener('click',()=>{const f=btn.dataset.filter;activeFilters.has(f)?activeFilters.delete(f):activeFilters.add(f);renderTable();});});
     document.getElementById('stateFilterPositions').addEventListener('change',e=>{stateFilter=e.target.value;renderTable();});
     document.getElementById('crossFilterPositions').addEventListener('change',e=>{crossFilter=e.target.value;renderTable();});
@@ -552,7 +549,6 @@
     let radarLoaded=false;
     function loadRadar(){if(!radarLoaded){const frame=document.getElementById('radarFrame');frame.src='crossover_radar.html';radarLoaded=true;}}
     
-    // Portfolio, Risk Ranges, Macro — identical to original
     async function fetchPortfolioData(){try{const[perfRes,accountsRes,groupsRes,benchmarkRes]=await Promise.all([sbGet('v_portfolio_performance'),fetch(`${SB_URL}/rest/v1/positions?select=account,symbol,value_gbp`,{headers:hdrs}).then(r=>r.json()),sbGet('v_positions_with_sizing','select=symbol,value_gbp,group_name,sub_group,portfolio_pct'),fetch(`${SB_URL}/rest/v1/v_crossover_states?symbol=in.(SPX,NDX,RUT)&select=symbol,perf_1d,perf_5d,perf_1m,perf_3m`,{headers:hdrs}).then(r=>r.json())]);renderPerformance(perfRes);renderAccounts(accountsRes);renderGroups(groupsRes);renderBenchmarks(perfRes,benchmarkRes);}catch(err){console.error('Failed to fetch portfolio data:',err);}}
     function renderPerformance(perfData){const daily=perfData.find(p=>p.period==='Daily');const totalValue=parseFloat(daily?.end_value)||0;const todayGain=parseFloat(daily?.gain_value)||0;const todayPct=parseFloat(daily?.gain_pct)||0;document.getElementById('pf-total').textContent=`£${(totalValue/1000).toFixed(0)}k`;const todayCls=todayGain>=0?'color:#4ade80':'color:#f87171';document.getElementById('pf-today-gain').innerHTML=`<span style="${todayCls}">${todayGain>=0?'+':''}£${(todayGain/1000).toFixed(1)}k (${todayPct>=0?'+':''}${todayPct.toFixed(2)}%)</span>`;const periods=['Daily','WoW','MTD','QTD','YTD','All Time'];const tbody=document.getElementById('pf-perf-body');tbody.innerHTML=periods.map(period=>{const data=perfData.find(p=>p.period===period);const gainVal=parseFloat(data?.gain_value)||0;const gainPct=parseFloat(data?.gain_pct)||0;const cashFlow=parseFloat(data?.net_cash_flow)||0;const realGain=parseFloat(data?.real_gain)||0;const realPct=parseFloat(data?.real_gain_pct)||0;const cls=gainPct>=0?'positive':'negative';const realCls=realPct>=0?'positive':'negative';const sign=gainPct>=0?'+':'';const realSign=realPct>=0?'+':'';const hasCashFlow=Math.abs(cashFlow)>1;const rowClass=period==='YTD'?'highlight-row':'';return`<tr class="${rowClass}"><td><strong>${period}</strong></td><td class="num ${cls}">${sign}£${(gainVal/1000).toFixed(1)}k</td><td class="num ${cls}">${sign}${gainPct.toFixed(2)}%</td><td class="num" style="color:${cashFlow>0?'#4ade80':cashFlow<0?'#f87171':'#666'}">${cashFlow!==0?(cashFlow>0?'+':'')+`£${(cashFlow/1000).toFixed(1)}k`:'-'}</td><td class="num ${realCls}">${hasCashFlow?realSign+'£'+(realGain/1000).toFixed(1)+'k':'-'}</td><td class="num ${realCls}">${hasCashFlow?realSign+realPct.toFixed(2)+'%':'-'}</td></tr>`;}).join('');}
     function renderAccounts(accountsRaw){const accounts={};let totalCash=0,totalValue=0;accountsRaw.forEach(p=>{if(!accounts[p.account])accounts[p.account]={value:0,cash:0};const val=parseFloat(p.value_gbp)||0;accounts[p.account].value+=val;totalValue+=val;if(p.symbol==='CASH'||p.symbol==='Cash'){accounts[p.account].cash+=val;totalCash+=val;}});const tbody=document.getElementById('pf-accounts-body');const accountOrder=['Si SIPP','Si SIPP II','Si ISA','Wife ISA'];tbody.innerHTML=Object.entries(accounts).sort((a,b)=>{const aIdx=accountOrder.indexOf(a[0]);const bIdx=accountOrder.indexOf(b[0]);if(aIdx>=0&&bIdx>=0)return aIdx-bIdx;if(aIdx>=0)return-1;if(bIdx>=0)return 1;return b[1].value-a[1].value;}).map(([name,data])=>`<tr><td>${name}</td><td class="num">£${(data.value/1000).toFixed(1)}k</td><td class="num">£${data.cash.toFixed(0)}</td></tr>`).join('');tbody.innerHTML+=`<tr style="font-weight:600;border-top:2px solid #333;"><td>TOTAL</td><td class="num">£${(totalValue/1000).toFixed(0)}k</td><td class="num">£${totalCash.toFixed(0)}</td></tr>`;}
