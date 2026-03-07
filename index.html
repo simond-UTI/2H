@@ -239,12 +239,6 @@
     <div class="stat s-watch clickable" data-signal="WATCH"><span id="cntWatch">-</span>Watch</div>
     <div class="stat s-hold clickable" data-signal="HOLD"><span id="cntHold">-</span>Hold</div>
     <div class="filter-sep"></div>
-    <div class="stat s-bull-accel"><span id="cntAccel">-</span>Accel</div>
-    <div class="stat s-bull-estab"><span id="cntEstab">-</span>Estab</div>
-    <div class="stat s-bull-fading"><span id="cntFading">-</span>Fading</div>
-    <div class="stat s-early-recv"><span id="cntRecv">-</span>Recv</div>
-    <div class="stat s-bear-decel"><span id="cntDecel">-</span>Decel</div>
-    <div class="stat s-bear-accel"><span id="cntBearAcc">-</span>BearAcc</div>
     <div class="stat s-cross"><span id="cntCross">-</span>⚡Cross</div>
     <div class="stat"><span id="totalCount">-</span>Total</div>
   </div>
@@ -479,12 +473,6 @@ function getBgColor(value,col){if(value===null||value===undefined||value==='')re
       document.getElementById('cntBuy').textContent=sigCnt('BUY');
       document.getElementById('cntWatch').textContent=sigCnt('WATCH');
       document.getElementById('cntHold').textContent=sigCnt('HOLD');
-      document.getElementById('cntAccel').textContent=cnt(1);
-      document.getElementById('cntEstab').textContent=cnt(2);
-      document.getElementById('cntFading').textContent=cnt(3);
-      document.getElementById('cntRecv').textContent=cnt(4);
-      document.getElementById('cntDecel').textContent=cnt(5);
-      document.getElementById('cntBearAcc').textContent=cnt(6);
       document.getElementById('cntCross').textContent=data.filter(r=>r.any_cross_today).length;
       document.getElementById('totalCount').textContent=data.length;
       
