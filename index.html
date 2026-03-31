@@ -332,7 +332,7 @@
       {id:'state',  label:'STATE',      cols:3},
       {id:'momentum',label:'MOMENTUM',  cols:2},
       {id:'levels', label:'LEVELS',     cols:3},
-      {id:'velocity',label:'VELOCITY',  cols:3},
+      {id:'velocity',label:'VELOCITY',  cols:4},
       {id:'flags',  label:'FLAGS',      cols:1},
       {id:'price',  label:'PRICE %',    cols:3},
       {id:'usd',    label:'USD $',      cols:2}
@@ -343,7 +343,7 @@
       {id:'state',  label:'STATE',      cols:3},
       {id:'momentum',label:'MOMENTUM',  cols:2},
       {id:'levels', label:'LEVELS',     cols:3},
-      {id:'velocity',label:'VELOCITY',  cols:3},
+      {id:'velocity',label:'VELOCITY',  cols:4},
       {id:'flags',  label:'FLAGS',      cols:1},
       {id:'price',  label:'PRICE %',    cols:3},
       {id:'usd',    label:'USD $',      cols:2}
@@ -364,7 +364,8 @@
       // VELOCITY
       {key:'t_roc_5d',   label:'T.5d',  section:'velocity', numeric:true,format:'gradient',min:-30,max:30},
       {key:'m_roc_5d',   label:'M.5d',  section:'velocity', numeric:true,format:'gradient',min:-30,max:30},
-      {key:'m_minus_t',  label:'M-T',   section:'velocity', numeric:true,format:'gradient',min:-80,max:80,sectionEnd:true},
+      {key:'m_minus_t',  label:'M-T',   section:'velocity', numeric:true,format:'gradient',min:-80,max:80},
+{key:'rotation_5d',label:'Rot5d', section:'velocity', numeric:true,format:'gradient',min:-100,max:100,sectionEnd:true},,
       // FLAGS
       {key:'extreme',    label:'Ext',   section:'flags',    sortType:'ext',sectionEnd:true},
       // PRICE — removed 20d% (moved to LEVELS)
@@ -392,7 +393,8 @@
       {key:'range_pos_20d',label:'20d%',section:'levels',   numeric:true,format:'pct100',sectionEnd:true},
       {key:'t_roc_5d',   label:'T.5d',  section:'velocity', numeric:true,format:'gradient',min:-30,max:30},
       {key:'m_roc_5d',   label:'M.5d',  section:'velocity', numeric:true,format:'gradient',min:-30,max:30},
-      {key:'m_minus_t',  label:'M-T',   section:'velocity', numeric:true,format:'gradient',min:-80,max:80,sectionEnd:true},
+      {key:'m_minus_t',  label:'M-T',   section:'velocity', numeric:true,format:'gradient',min:-80,max:80},
+{key:'rotation_5d',label:'Rot5d', section:'velocity', numeric:true,format:'gradient',min:-100,max:100,sectionEnd:true},,
       {key:'extreme',    label:'Ext',   section:'flags',    sortType:'ext',sectionEnd:true},
       {key:'perf_1d',    label:'1d%',   section:'price',    numeric:true,format:'gradient',min:-5,max:5},
       {key:'perf_5d',    label:'5d%',   section:'price',    numeric:true,format:'gradient',min:-10,max:10},
