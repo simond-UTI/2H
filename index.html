@@ -70,7 +70,6 @@
     .stat.s-bear-accel span { color: #ef4444; }
     .stat.s-cross span { color: #fbbf24; }
     .stat.value span { color: #60a5fa; }
-    /* NEW: direction signal stats */
     .stat.s-rising span { color: #4ade80; }
     .stat.s-recovering span { color: #86efac; }
     .stat.s-neutral span { color: #888; }
@@ -94,6 +93,7 @@
     tr:hover td { background: #151515; }
     .section-end { border-right: 3px solid #555 !important; }
     .state-badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; letter-spacing: 0.3px; }
+    .state-new { display: inline-block; padding: 1px 4px; border-radius: 3px; font-size: 8px; font-weight: 700; letter-spacing: 0.5px; background: #fbbf24; color: #000; margin-left: 4px; vertical-align: middle; }
     .state-1 { background: #166534; color: #4ade80; }
     .state-2 { background: #14532d; color: #22c55e; }
     .state-3 { background: #9a3412; color: #fdba74; }
@@ -111,14 +111,12 @@
     .size-max { color: #888; }
     .size-over { color: #f87171; font-weight: 600; }
     .loading { text-align: center; color: #666; padding: 40px; }
-    /* direction signal pill — same style as state-badge */
     .dir-pill { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; letter-spacing: 0.3px; white-space: nowrap; }
     .dir-rising    { background: #14532d; color: #4ade80; }
     .dir-recovering{ background: #1a3d2a; color: #86efac; }
     .dir-neutral   { background: #222;    color: #888; }
     .dir-weakening { background: #431407; color: #fb923c; }
     .dir-falling   { background: #7f1d1d; color: #f87171; }
-    /* NEW: arrow trail cell */
     .arrow-trail { font-size: 15px; letter-spacing: 4px; font-family: 'Segoe UI Symbol', 'Apple Color Emoji', sans-serif; line-height: 1; }
     .rr-divider { border-left: 2px solid #444 !important; }
     .rr-table { border-collapse: collapse; }
@@ -144,6 +142,7 @@
         <div class="tab-nav">
           <button class="tab-btn active" data-tab="positions">Positions</button>
           <button class="tab-btn" data-tab="universe">Universe</button>
+          <button class="tab-btn" data-tab="alerts">Alerts</button>
           <button class="tab-btn" data-tab="radar">Radar</button>
           <button class="tab-btn" data-tab="portfolio">Portfolio</button>
           <button class="tab-btn" data-tab="riskranges">Risk Ranges</button>
@@ -245,7 +244,6 @@
     <div class="filter-sep"></div>
     <div class="stat s-cross"><span id="cntCross">-</span>⚡Cross</div>
     <div class="stat"><span id="totalCount">-</span>Total</div>
-
   </div>
 
   <div class="table-wrapper" id="positionsView">
@@ -257,6 +255,85 @@
 
   <div id="radarView" style="display:none;">
     <iframe id="radarFrame" class="radar-frame"></iframe>
+  </div>
+
+  <div id="alertsView" style="display:none;">
+    <div class="stats" style="border-top:none;">
+      <div class="stat" style="color:#4ade80;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">⚡ Entry Signals — Into Bull</div>
+    </div>
+    <div class="table-wrapper" style="max-height:none;overflow:visible;">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-symbol freeze-col" style="position:static;">Sym</th>
+            <th>Grp</th>
+            <th>From</th>
+            <th></th>
+            <th>To</th>
+            <th>Signal.10d</th>
+            <th>Trail <span style="font-size:9px;color:#444;font-weight:400;text-transform:none;">old→new</span></th>
+            <th class="num">Rot5d</th>
+            <th class="num">T.5d</th>
+            <th class="num">M.5d</th>
+            <th class="num">Trnd</th>
+            <th class="num">Mom</th>
+            <th class="num">1d%</th>
+          </tr>
+        </thead>
+        <tbody id="alerts-entry-body"><tr><td colspan="13" class="loading">Loading...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="stats" style="border-top:1px solid #222;margin-top:8px;">
+      <div class="stat" style="color:#fbbf24;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">👁 Watchlist — Early Recv M.5d &gt; 5</div>
+    </div>
+    <div class="table-wrapper" style="max-height:none;overflow:visible;">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-symbol freeze-col" style="position:static;">Sym</th>
+            <th>Grp</th>
+            <th>State</th>
+            <th></th>
+            <th></th>
+            <th>Signal.10d</th>
+            <th>Trail <span style="font-size:9px;color:#444;font-weight:400;text-transform:none;">old→new</span></th>
+            <th class="num">Rot5d</th>
+            <th class="num">T.5d</th>
+            <th class="num">M.5d</th>
+            <th class="num">Trnd</th>
+            <th class="num">Mom</th>
+            <th class="num">1d%</th>
+          </tr>
+        </thead>
+        <tbody id="alerts-watchlist-body"><tr><td colspan="13" class="loading">Loading...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="stats" style="border-top:1px solid #222;margin-top:8px;">
+      <div class="stat" style="color:#f87171;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">🚨 Exit Signals — Fading or Worse</div>
+    </div>
+    <div class="table-wrapper" style="max-height:none;overflow:visible;">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-symbol freeze-col" style="position:static;">Sym</th>
+            <th>Grp</th>
+            <th>From</th>
+            <th></th>
+            <th>To</th>
+            <th>Signal.10d</th>
+            <th>Trail <span style="font-size:9px;color:#444;font-weight:400;text-transform:none;">old→new</span></th>
+            <th class="num">Rot5d</th>
+            <th class="num">T.5d</th>
+            <th class="num">M.5d</th>
+            <th class="num">Trnd</th>
+            <th class="num">Mom</th>
+            <th class="num">1d%</th>
+          </tr>
+        </thead>
+        <tbody id="alerts-exit-body"><tr><td colspan="13" class="loading">Loading...</td></tr></tbody>
+      </table>
+    </div>
+    <div style="padding:8px 16px;font-size:11px;color:#555;" id="alerts-ts"></div>
   </div>
 
   <div class="portfolio-container" id="portfolioView" style="display:none;">
@@ -324,83 +401,83 @@
     let allData=[],positionSymbols=new Set(),allocationData={},activeFilters=new Set(['POS']),groupFilter='',stateFilter='',crossFilter='',signalFilter='',searchTerm='',dataSource='intraday';
 
     // ── SECTION / COLUMN DEFINITIONS ──────────────────────────────────────
-    // Replaced: signal section + edge rank section
-    // Added:    momentum section (dir_signal + arrow_trail)
-    // Moved:    20d% into price section
+    // CHANGES:
+    //   - MOMENTUM: Signal label renamed to Signal.10d
+    //   - VELOCITY: M-T removed, order now Rot5d → T.5d → M.5d (cols 3)
+    //   - DEFAULT SORT: state asc then rotation_5d desc
     const sectionsBase=[
-      {id:'info',   label:'',           cols:1},
-      {id:'state',  label:'STATE',      cols:3},
+      {id:'info',    label:'',          cols:1},
+      {id:'state',   label:'STATE',     cols:3},
       {id:'momentum',label:'MOMENTUM',  cols:2},
-      {id:'levels', label:'LEVELS',     cols:3},
-      {id:'velocity',label:'VELOCITY',  cols:4},
-      {id:'flags',  label:'FLAGS',      cols:1},
-      {id:'price',  label:'PRICE %',    cols:3},
-      {id:'usd',    label:'USD $',      cols:2}
+      {id:'levels',  label:'LEVELS',    cols:3},
+      {id:'velocity',label:'TRADE',  cols:3},
+      {id:'flags',   label:'FLAGS',     cols:1},
+      {id:'price',   label:'PRICE %',   cols:3},
+      {id:'usd',     label:'USD $',     cols:2}
     ];
     const sectionsWithSize=[
-      {id:'info',   label:'',           cols:1},
-      {id:'size',   label:'SIZE',       cols:4},
-      {id:'state',  label:'STATE',      cols:3},
+      {id:'info',    label:'',          cols:1},
+      {id:'size',    label:'SIZE',      cols:4},
+      {id:'state',   label:'STATE',     cols:3},
       {id:'momentum',label:'MOMENTUM',  cols:2},
-      {id:'levels', label:'LEVELS',     cols:3},
-      {id:'velocity',label:'VELOCITY',  cols:4},
-      {id:'flags',  label:'FLAGS',      cols:1},
-      {id:'price',  label:'PRICE %',    cols:3},
-      {id:'usd',    label:'USD $',      cols:2}
+      {id:'levels',  label:'LEVELS',    cols:3},
+      {id:'velocity',label:'TRADE',  cols:3},
+      {id:'flags',   label:'FLAGS',     cols:1},
+      {id:'price',   label:'PRICE %',   cols:3},
+      {id:'usd',     label:'USD $',     cols:2}
     ];
 
     const columnsBase=[
-      {key:'symbol',     label:'Sym',   section:'info',     freeze:true,freezeClass:'col-symbol',sectionEnd:true},
-      {key:'group_name', label:'Grp',   section:'state'},
-      {key:'state_name', label:'State', section:'state'},
-      {key:'cross',      label:'Cross', section:'state',    sectionEnd:true},
-      // MOMENTUM: direction signal + arrow trail (replaces old signal + edge rank)
-      {key:'dir_signal', label:'Signal',section:'momentum'},
-      {key:'arrow_trail',label:'Trail <span style="font-size:9px;color:#444;font-weight:400;text-transform:none;">old→new</span>', section:'momentum', sectionEnd:true},
-      // LEVELS: raw scores + 20d range position
-      {key:'trend',      label:'Trnd',  section:'levels',   numeric:true,format:'gradient',min:-100,max:100},
-      {key:'mom',        label:'Mom',   section:'levels',   numeric:true,format:'gradient',min:-100,max:100},
-      {key:'range_pos_20d',label:'20d%',section:'levels',   numeric:true,format:'pct100',sectionEnd:true},
-      // VELOCITY
-      {key:'t_roc_5d',   label:'T.5d',  section:'velocity', numeric:true,format:'gradient',min:-30,max:30},
-      {key:'m_roc_5d',   label:'M.5d',  section:'velocity', numeric:true,format:'gradient',min:-30,max:30},
-      {key:'m_minus_t',  label:'M-T',   section:'velocity', numeric:true,format:'gradient',min:-80,max:80},
-{key:'rotation_5d',label:'Rot5d', section:'velocity', numeric:true,format:'gradient',min:-100,max:100,sectionEnd:true},
+      {key:'symbol',      label:'Sym',        section:'info',     freeze:true,freezeClass:'col-symbol',sectionEnd:true},
+      {key:'group_name',  label:'Grp',        section:'state'},
+      {key:'state_name',  label:'State',      section:'state'},
+      {key:'cross',       label:'Cross',      section:'state',    sectionEnd:true},
+      // MOMENTUM — Signal.10d (was Signal), trail unchanged
+      {key:'dir_signal',  label:'Signal.10d', section:'momentum'},
+      {key:'arrow_trail', label:'Trail <span style="font-size:9px;color:#444;font-weight:400;text-transform:none;">old→new</span>', section:'momentum', sectionEnd:true},
+      // LEVELS
+      {key:'trend',       label:'Trnd',       section:'levels',   numeric:true,format:'gradient',min:-100,max:100},
+      {key:'mom',         label:'Mom',        section:'levels',   numeric:true,format:'gradient',min:-100,max:100},
+      {key:'range_pos_20d',label:'20d%',      section:'levels',   numeric:true,format:'pct100',sectionEnd:true},
+      // VELOCITY — Rot5d first, then T.5d, M.5d. M-T removed.
+      {key:'rotation_5d', label:'Rot5d',      section:'velocity', numeric:true,format:'gradient',min:-100,max:100},
+      {key:'t_roc_5d',    label:'T.5d',       section:'velocity', numeric:true,format:'gradient',min:-30,max:30},
+      {key:'m_roc_5d',    label:'M.5d',       section:'velocity', numeric:true,format:'gradient',min:-30,max:30,sectionEnd:true},
       // FLAGS
-      {key:'extreme',    label:'Ext',   section:'flags',    sortType:'ext',sectionEnd:true},
-      // PRICE — removed 20d% (moved to LEVELS)
-      {key:'perf_1d',    label:'1d%',   section:'price',    numeric:true,format:'gradient',min:-5,max:5},
-      {key:'perf_5d',    label:'5d%',   section:'price',    numeric:true,format:'gradient',min:-10,max:10},
-      {key:'perf_1m',    label:'1m%',   section:'price',    numeric:true,format:'gradient',min:-20,max:20,sectionEnd:true},
+      {key:'extreme',     label:'Ext',        section:'flags',    sortType:'ext',sectionEnd:true},
+      // PRICE
+      {key:'perf_1d',     label:'1d%',        section:'price',    numeric:true,format:'gradient',min:-5,max:5},
+      {key:'perf_5d',     label:'5d%',        section:'price',    numeric:true,format:'gradient',min:-10,max:10},
+      {key:'perf_1m',     label:'1m%',        section:'price',    numeric:true,format:'gradient',min:-20,max:20,sectionEnd:true},
       // USD
-      {key:'usd_corr_15d',label:'15d',  section:'usd',      numeric:true,format:'usdcorr'},
-      {key:'usd_corr_30d',label:'30d',  section:'usd',      numeric:true,format:'usdcorr'}
+      {key:'usd_corr_15d',label:'15d',        section:'usd',      numeric:true,format:'usdcorr'},
+      {key:'usd_corr_30d',label:'30d',        section:'usd',      numeric:true,format:'usdcorr'}
     ];
 
     const columnsWithSize=[
-      {key:'symbol',     label:'Sym',   section:'info',     freeze:true,freezeClass:'col-symbol',sectionEnd:true},
-      {key:'port_pct',   label:'Port%', section:'size',     numeric:true},
-      {key:'max_pct',    label:'Max%',  section:'size',     numeric:true},
-      {key:'pct_of_max', label:'%Max',  section:'size',     numeric:true,format:'pctMax'},
-      {key:'value',      label:'Value', section:'size',     numeric:true,sectionEnd:true},
-      {key:'group_name', label:'Grp',   section:'state'},
-      {key:'state_name', label:'State', section:'state'},
-      {key:'cross',      label:'Cross', section:'state',    sectionEnd:true},
-      {key:'dir_signal', label:'Signal',section:'momentum'},
-      {key:'arrow_trail',label:'Trail <span style="font-size:9px;color:#444;font-weight:400;text-transform:none;">old→new</span>', section:'momentum', sectionEnd:true},
-      {key:'trend',      label:'Trnd',  section:'levels',   numeric:true,format:'gradient',min:-100,max:100},
-      {key:'mom',        label:'Mom',   section:'levels',   numeric:true,format:'gradient',min:-100,max:100},
-      {key:'range_pos_20d',label:'20d%',section:'levels',   numeric:true,format:'pct100',sectionEnd:true},
-      {key:'t_roc_5d',   label:'T.5d',  section:'velocity', numeric:true,format:'gradient',min:-30,max:30},
-      {key:'m_roc_5d',   label:'M.5d',  section:'velocity', numeric:true,format:'gradient',min:-30,max:30},
-      {key:'m_minus_t',  label:'M-T',   section:'velocity', numeric:true,format:'gradient',min:-80,max:80},
-{key:'rotation_5d',label:'Rot5d', section:'velocity', numeric:true,format:'gradient',min:-100,max:100,sectionEnd:true},
-      {key:'extreme',    label:'Ext',   section:'flags',    sortType:'ext',sectionEnd:true},
-      {key:'perf_1d',    label:'1d%',   section:'price',    numeric:true,format:'gradient',min:-5,max:5},
-      {key:'perf_5d',    label:'5d%',   section:'price',    numeric:true,format:'gradient',min:-10,max:10},
-      {key:'perf_1m',    label:'1m%',   section:'price',    numeric:true,format:'gradient',min:-20,max:20,sectionEnd:true},
-      {key:'usd_corr_15d',label:'15d',  section:'usd',      numeric:true,format:'usdcorr'},
-      {key:'usd_corr_30d',label:'30d',  section:'usd',      numeric:true,format:'usdcorr'}
+      {key:'symbol',      label:'Sym',        section:'info',     freeze:true,freezeClass:'col-symbol',sectionEnd:true},
+      {key:'port_pct',    label:'Port%',      section:'size',     numeric:true},
+      {key:'max_pct',     label:'Max%',       section:'size',     numeric:true},
+      {key:'pct_of_max',  label:'%Max',       section:'size',     numeric:true,format:'pctMax'},
+      {key:'value',       label:'Value',      section:'size',     numeric:true,sectionEnd:true},
+      {key:'group_name',  label:'Grp',        section:'state'},
+      {key:'state_name',  label:'State',      section:'state'},
+      {key:'cross',       label:'Cross',      section:'state',    sectionEnd:true},
+      {key:'dir_signal',  label:'Signal.10d', section:'momentum'},
+      {key:'arrow_trail', label:'Trail <span style="font-size:9px;color:#444;font-weight:400;text-transform:none;">old→new</span>', section:'momentum', sectionEnd:true},
+      {key:'trend',       label:'Trnd',       section:'levels',   numeric:true,format:'gradient',min:-100,max:100},
+      {key:'mom',         label:'Mom',        section:'levels',   numeric:true,format:'gradient',min:-100,max:100},
+      {key:'range_pos_20d',label:'20d%',      section:'levels',   numeric:true,format:'pct100',sectionEnd:true},
+      // VELOCITY — Rot5d first, then T.5d, M.5d. M-T removed.
+      {key:'rotation_5d', label:'Rot5d',      section:'velocity', numeric:true,format:'gradient',min:-100,max:100},
+      {key:'t_roc_5d',    label:'T.5d',       section:'velocity', numeric:true,format:'gradient',min:-30,max:30},
+      {key:'m_roc_5d',    label:'M.5d',       section:'velocity', numeric:true,format:'gradient',min:-30,max:30,sectionEnd:true},
+      {key:'extreme',     label:'Ext',        section:'flags',    sortType:'ext',sectionEnd:true},
+      {key:'perf_1d',     label:'1d%',        section:'price',    numeric:true,format:'gradient',min:-5,max:5},
+      {key:'perf_5d',     label:'5d%',        section:'price',    numeric:true,format:'gradient',min:-10,max:10},
+      {key:'perf_1m',     label:'1m%',        section:'price',    numeric:true,format:'gradient',min:-20,max:20,sectionEnd:true},
+      {key:'usd_corr_15d',label:'15d',        section:'usd',      numeric:true,format:'usdcorr'},
+      {key:'usd_corr_30d',label:'30d',        section:'usd',      numeric:true,format:'usdcorr'}
     ];
 
     function getSections(){return activeFilters.has('POS')?sectionsWithSize:sectionsBase;}
@@ -417,9 +494,9 @@
       if(!groups.includes(current)){groupFilter='';sel.value='';}
     }
 
-    let sortKey='trend',sortDir='desc',sortClickCount=0;
+    // ── DEFAULT SORT: state asc then rotation_5d desc ──────────────────────
+    let sortKey='state',sortDir='asc',sortKey2='rotation_5d',sortDir2='desc',sortClickCount=0;
 
-    // ── CROSS BUILDER: only zero-line crosses, M><T removed ───────────────
     function buildCross(r){
       const crosses=[];
       if(r.cross_m_up_0)crosses.push({e:'M↑0',d:0});
@@ -441,7 +518,6 @@
       }).join(' ');
     }
 
-    // ── FORMATTERS ────────────────────────────────────────────────────────
     function formatDirSignal(v){
       if(!v)return'-';
       const cls={'RISING':'dir-rising','RECOVERING':'dir-recovering','NEUTRAL':'dir-neutral','WEAKENING':'dir-weakening','FALLING':'dir-falling'}[v]||'dir-neutral';
@@ -450,7 +526,6 @@
 
     function formatTrail(v){
       if(!v)return'-';
-      // Colour each arrow based on its direction
       const colourMap={'↗':'#4ade80','↑':'#4ade80','→':'#86efac','↘':'#fbbf24','•':'#555','↖':'#fb923c','↓':'#fb923c','←':'#f87171','↙':'#f87171'};
       const chars=[...v];
       const coloured=chars.map(c=>{
@@ -475,7 +550,7 @@
       return'';
     }
 
-    function formatState(s){if(!s)return'';const stateNum={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6}[s]||0;return`<span class="state-badge state-${stateNum}">${s}</span>`;}
+    function formatState(s,changed){if(!s)return'';const stateNum={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6}[s]||0;const badge=changed?'<span class="state-new">NEW</span>':'';return`<span class="state-badge state-${stateNum}">${s}</span>${badge}`;}
     function formatGroup(g){if(!g)return'';const map={'PRECIOUS METALS':'PMs','COMMODITIES':'Commod','COUNTRIES':'Country','US SECTORS':'US Sect','THEMATIC TECH':'Tech','MINERS':'Miners','US INDICES':'US Idx','GLOBAL FACTORS':'Factors','ENERGY':'Energy','CRYPTO RELATED':'Crypto','CRYPTO':'Crypto','VOLATILITY':'Vol','EMERGING MARKETS':'EM','FIXED INCOME':'Fixed Inc','UK EQUITY':'UK Eq','BONDS':'Bonds','GLOBAL SECTORS':'Gl Sect','GOLD':'Gold','GLOBAL BROAD':'Global','CURRENCIES':'FX'};return`<span class="grp">${map[g]||g}</span>`;}
     function formatExt(v){if(!v)return'';const cls=v==='HIGH'?'ext-high':'ext-low';return`<span class="ext ${cls}">${v}</span>`;}
     function formatNum(v){if(v===null||v===undefined||v==='')return'-';const num=parseFloat(v);if(isNaN(num))return v;return num%1===0?num:num.toFixed(1);}
@@ -486,7 +561,7 @@
       const v=row[col.key];
       if(col.key==='dir_signal')return formatDirSignal(v);
       if(col.key==='arrow_trail')return formatTrail(v);
-      if(col.key==='state_name')return formatState(v);
+      if(col.key==='state_name')return formatState(v,row.state_changed);
       if(col.key==='cross')return`<span class="cross-cell">${formatCrossCell(row._crosses||[])}</span>`;
       if(col.key==='group_name')return formatGroup(v);
       if(col.key==='extreme')return formatExt(v);
@@ -500,7 +575,7 @@
     }
 
     function getSortValue(row,key,col){
-      if(key==='trend')return row.trend??-999;
+      if(key==='state'){const order={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6};return order[row.state_name]??9;}
       if(key==='dir_signal'){const order={RISING:1,RECOVERING:2,NEUTRAL:3,WEAKENING:4,FALLING:5};return order[row.dir_signal]??3;}
       const v=row[key];
       if(col?.sortType==='ext'){if(!v)return 999;return v==='HIGH'?1:2;}
@@ -527,8 +602,22 @@
       tr.querySelectorAll('th').forEach(th=>{
         th.addEventListener('click',()=>{
           const key=th.dataset.key;
-          if(sortKey===key){sortClickCount++;if(sortClickCount>=3){sortKey='trend';sortDir='desc';sortClickCount=0;}else{sortDir=sortDir==='asc'?'desc':'asc';}}
-          else{sortKey=key;sortDir=(key==='dir_signal')?'asc':'desc';sortClickCount=1;}
+          if(sortKey===key){
+            sortClickCount++;
+            if(sortClickCount>=3){
+              // reset to default
+              sortKey='state';sortDir='asc';sortKey2='rotation_5d';sortDir2='desc';sortClickCount=0;
+            }else{
+              sortDir=sortDir==='asc'?'desc':'asc';
+              sortKey2=null;
+            }
+          }else{
+            sortKey=key;
+            sortDir=(key==='dir_signal'||key==='state')?'asc':'desc';
+            sortKey2=key==='state'?'rotation_5d':null;
+            sortDir2='desc';
+            sortClickCount=1;
+          }
           renderTable();
         });
       });
@@ -557,17 +646,28 @@
       if(activeFilters.has('EXT'))data=data.filter(r=>r.extreme);
 
       const sortCol=columns.find(c=>c.key===sortKey);
+      const sortCol2=sortKey2?columns.find(c=>c.key===sortKey2):null;
+
       data.sort((a,b)=>{
+        // Primary sort
         let aVal=getSortValue(a,sortKey,sortCol),bVal=getSortValue(b,sortKey,sortCol);
         if(aVal===null||aVal===undefined||aVal==='')aVal=sortDir==='asc'?Infinity:-Infinity;
         if(bVal===null||bVal===undefined||bVal==='')bVal=sortDir==='asc'?Infinity:-Infinity;
         if(typeof aVal==='string'&&!isNaN(parseFloat(aVal))){aVal=parseFloat(aVal);bVal=parseFloat(bVal);}
         if(aVal<bVal)return sortDir==='asc'?-1:1;
         if(aVal>bVal)return sortDir==='asc'?1:-1;
+        // Secondary sort (rotation_5d desc within state)
+        if(sortCol2){
+          let aVal2=getSortValue(a,sortKey2,sortCol2),bVal2=getSortValue(b,sortKey2,sortCol2);
+          if(aVal2===null||aVal2===undefined||aVal2==='')aVal2=sortDir2==='asc'?Infinity:-Infinity;
+          if(bVal2===null||bVal2===undefined||bVal2==='')bVal2=sortDir2==='asc'?Infinity:-Infinity;
+          if(typeof aVal2==='string'&&!isNaN(parseFloat(aVal2))){aVal2=parseFloat(aVal2);bVal2=parseFloat(bVal2);}
+          if(aVal2<bVal2)return sortDir2==='asc'?-1:1;
+          if(aVal2>bVal2)return sortDir2==='asc'?1:-1;
+        }
         return 0;
       });
 
-      // Stats bar — direction signal counts
       const sigCnt=s=>data.filter(r=>r.dir_signal===s).length;
       document.getElementById('cntRising').textContent=sigCnt('RISING');
       document.getElementById('cntRecovering').textContent=sigCnt('RECOVERING');
@@ -585,14 +685,24 @@
 
       document.querySelectorAll('#tableHead th').forEach(th=>{
         const key=th.dataset.key,col=columns.find(c=>c.key===key),label=col?.label||'';
-        th.innerHTML=key===sortKey?`${label} ${sortDir==='asc'?'↑':'↓'}`:label;
+        const isActive=key===sortKey;
+        const isSecondary=key===sortKey2;
+        if(isActive)th.innerHTML=`${label} ${sortDir==='asc'?'↑':'↓'}`;
+        else if(isSecondary)th.innerHTML=`${label} <span style="color:#555;font-size:9px;">${sortDir2==='asc'?'↑':'↓'}</span>`;
+        else th.innerHTML=label;
       });
 
       const tbody=document.getElementById('tableBody');
       tbody.innerHTML=data.map(row=>{
+        const isHeld=positionSymbols.has(row.symbol);
         const cells=columns.map(col=>{
           const bg=getBgColor(row[col.key],col),style=bg?`style="background:${bg}"`:'';
           const classes=[col.numeric?'num':'',col.sectionEnd?'section-end':'',col.freeze?'freeze-col '+col.freezeClass:''].filter(Boolean).join(' ');
+          // Add white left border to symbol cell for held positions
+          if(col.key==='symbol'&&isHeld){
+            const heldStyle=bg?`style="background:${bg};border-left:4px solid #fff !important"`:`style="border-left:4px solid #fff !important"`;
+            return`<td class="${classes}" ${heldStyle}>${formatCell(row,col)}</td>`;
+          }
           return`<td class="${classes}" ${style}>${formatCell(row,col)}</td>`;
         }).join('');
         return`<tr>${cells}</tr>`;
@@ -635,7 +745,6 @@
     async function fetchData(){
       try{
         await fetchPositions();
-        // Now queries v_universe_clean instead of v_edge_rank_live_usd
         const viewName=dataSource==='intraday'?'v_universe_clean':'v_universe_clean_eod';
         const res=await fetch(`${SB_URL}/rest/v1/${viewName}?select=*`,{headers:hdrs});
         if(!res.ok)throw new Error('Fetch failed');
@@ -668,6 +777,7 @@
       document.getElementById('stateFilterPositions').value='';
       document.getElementById('crossFilterPositions').value='';
       document.getElementById('signalFilterPositions').value='';
+      sortKey='state';sortDir='asc';sortKey2='rotation_5d';sortDir2='desc';sortClickCount=0;
       activeFilters=new Set(['POS']);buildHeader();renderTable();
     });
     document.getElementById('clearUniverse').addEventListener('click',()=>{
@@ -677,6 +787,7 @@
       document.getElementById('crossFilterUniverse').value='';
       document.getElementById('signalFilterUniverse').value='';
       document.getElementById('groupFilter').value='';
+      sortKey='state';sortDir='asc';sortKey2='rotation_5d';sortDir2='desc';sortClickCount=0;
       activeFilters=new Set(['UK']);buildHeader();renderTable();
     });
 
@@ -690,6 +801,7 @@
       const showTable=(tab==='positions'||tab==='universe');
       document.getElementById('positionsView').style.display=showTable?'block':'none';
       document.getElementById('radarView').style.display=tab==='radar'?'block':'none';
+      document.getElementById('alertsView').style.display=tab==='alerts'?'block':'none';
       document.getElementById('portfolioView').style.display=tab==='portfolio'?'block':'none';
       document.getElementById('riskrangesView').style.display=tab==='riskranges'?'block':'none';
       document.getElementById('macroView').style.display=tab==='macro'?'block':'none';
@@ -701,9 +813,11 @@
       document.getElementById('stateFilterPositions').value='';document.getElementById('stateFilterUniverse').value='';
       document.getElementById('crossFilterPositions').value='';document.getElementById('crossFilterUniverse').value='';
       document.getElementById('signalFilterPositions').value='';document.getElementById('signalFilterUniverse').value='';
+      sortKey='state';sortDir='asc';sortKey2='rotation_5d';sortDir2='desc';sortClickCount=0;
       if(tab==='positions'){activeFilters=new Set(['POS']);buildHeader();renderTable();}
       else if(tab==='universe'){activeFilters=new Set(['UK']);groupFilter='';document.getElementById('groupFilter').value='';buildHeader();renderTable();}
       else if(tab==='radar'){loadRadar();}
+      else if(tab==='alerts'){fetchAlerts();}
       else if(tab==='portfolio'){fetchPortfolioData();}
       else if(tab==='riskranges'){fetchRiskRanges();}
       else if(tab==='macro'){fetchMacroData();}
@@ -731,22 +845,15 @@
     function renderGroups(groupsRaw){
       const groupStats={};
       let totalValue=0;
-
-      // FIX: consolidate same symbol across accounts before display
-      // First sum value and find max portfolio_pct per symbol
       const symbolTotals={};
       groupsRaw.forEach(p=>{
         if(!p.symbol||p.symbol==='CASH')return;
         const val=parseFloat(p.value_gbp)||0;
         const pct=parseFloat(p.portfolio_pct)||0;
-        if(!symbolTotals[p.symbol]){
-          symbolTotals[p.symbol]={symbol:p.symbol,value:0,pct:0,group:p.group_name};
-        }
+        if(!symbolTotals[p.symbol]){symbolTotals[p.symbol]={symbol:p.symbol,value:0,pct:0,group:p.group_name};}
         symbolTotals[p.symbol].value+=val;
-        symbolTotals[p.symbol].pct+=pct; // sum pct across accounts
+        symbolTotals[p.symbol].pct+=pct;
       });
-
-      // Now build group stats from consolidated symbols
       Object.values(symbolTotals).forEach(pos=>{
         const group=pos.group||'OTHER';
         if(!groupStats[group]){groupStats[group]={count:0,value:0,positions:[]};}
@@ -755,7 +862,6 @@
         totalValue+=pos.value;
         groupStats[group].positions.push(pos);
       });
-
       const tbody=document.getElementById('pf-groups-body');
       const sortedGroups=Object.entries(groupStats).sort((a,b)=>{
         if(a[0]==='CASH')return 1;if(b[0]==='CASH')return-1;
@@ -794,6 +900,132 @@
     function renderMacroYield(data){data.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));document.getElementById('macro-yield-body').innerHTML=data.map(d=>{const dod=parseFloat(d.dod_bps)||0,wow=parseFloat(d.wow_bps)||0,mom=parseFloat(d.mom_bps)||0;return'<tr><td><strong>'+d.series+'</strong></td><td class="num">'+parseFloat(d.current_yield).toFixed(3)+'</td><td class="num" style="color:'+(dod>=0?'#f87171':'#4ade80')+'">'+dod.toFixed(1)+'</td><td class="num" style="color:'+(wow>=0?'#f87171':'#4ade80')+'">'+wow.toFixed(1)+'</td><td class="num" style="color:'+(mom>=0?'#f87171':'#4ade80')+'">'+mom.toFixed(1)+'</td></tr>';}).join('');}
     function renderUsdCorr(data){const corrBg=v=>{if(v===null||isNaN(v))return'';const abs=Math.abs(v);if(abs<0.15)return'background:rgba(100,100,100,0.15);';if(v>0.4)return'background:rgba(74,222,128,0.25);';if(v>0.15)return'background:rgba(74,222,128,0.12);';if(v<-0.4)return'background:rgba(248,113,113,0.25);';return'background:rgba(248,113,113,0.12);';};const fmtCorr=v=>{const n=parseFloat(v);if(isNaN(n))return'-';return(n>=0?'+':'')+n.toFixed(2);};document.getElementById('macro-usdcorr-body').innerHTML=data.map(d=>{const d15=parseFloat(d['15D']),d30=parseFloat(d['30D']),d90=parseFloat(d['90D']),d120=parseFloat(d['120D']),d180=parseFloat(d['180D']);const regime=d.regime_30d||'';const insight=d.insight&&d.insight!=='null'?d.insight:'';return'<tr><td><strong>'+d.metric+'</strong></td><td class="num" style="'+corrBg(d15)+'">'+fmtCorr(d15)+'</td><td class="num" style="'+corrBg(d30)+'">'+fmtCorr(d30)+'</td><td class="num" style="'+corrBg(d90)+'">'+fmtCorr(d90)+'</td><td class="num" style="'+corrBg(d120)+'">'+fmtCorr(d120)+'</td><td class="num sec-end" style="'+corrBg(d180)+'">'+fmtCorr(d180)+'</td><td class="sec-end" style="font-size:11px;">'+regime+'</td><td style="font-size:10px;color:#ccc;">'+insight+'</td></tr>';}).join('');}
     function renderMacroQuads(data){const quarters=[...new Set(data.map(d=>d.quarter))].sort();const countries={};data.forEach(d=>{if(!countries[d.country])countries[d.country]={};countries[d.country][d.quarter]=d.quad;});const sortOrder=['United States','United Kingdom'];const sortedCountries=Object.keys(countries).sort((a,b)=>{const aIdx=sortOrder.indexOf(a),bIdx=sortOrder.indexOf(b);if(aIdx>=0&&bIdx>=0)return aIdx-bIdx;if(aIdx>=0)return-1;if(bIdx>=0)return 1;return a.localeCompare(b);});const quadColor=q=>{if(q===1)return'#4ade80';if(q===2)return'#facc15';if(q===3)return'#fb923c';if(q===4)return'#f87171';return'#666';};const currentQ=quarters.length>1?quarters[1]:quarters[0];const headerRow=document.querySelector('#macro-quads-body').closest('table').querySelector('thead tr');headerRow.innerHTML='<th>Country</th>'+quarters.map(q=>'<th class="num"'+(q===currentQ?' style="background:#1a2a1a;"':'')+'>'+q.replace('20','\'')+'</th>').join('');document.getElementById('macro-quads-body').innerHTML=sortedCountries.map(country=>{const c=countries[country];return'<tr><td><strong>'+country+'</strong></td>'+quarters.map(q=>'<td class="num" style="'+(q===currentQ?'background:#1a2a1a;font-weight:600;':'')+'color:'+quadColor(c[q])+'">Q'+(c[q]||'-')+'</td>').join('')+'</tr>';}).join('');}
+
+    // ── ALERTS ────────────────────────────────────────────────────────────
+    async function fetchAlerts(){
+      try{
+        const viewName=dataSource==='intraday'?'v_universe_clean':'v_universe_clean_eod';
+        // Use allData if already loaded, otherwise fetch
+        const d=allData.length>0?allData:await fetch(`${SB_URL}/rest/v1/${viewName}?select=*`,{headers:hdrs}).then(r=>r.json());
+
+        const latest=d.reduce((mx,r)=>{const t=new Date(r.bar_timestamp);return t>mx?t:mx},new Date(0));
+        document.getElementById('alerts-ts').textContent='Last updated: '+latest.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+latest.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+
+        const STATE_ORD={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6};
+        const STATE_NUM=STATE_ORD;
+
+        function stateB(s){if(!s)return'-';const n=STATE_NUM[s]||0;return`<span class="state-badge state-${n}">${s}</span>`;}
+        // Returns [bgStyle, displayText] — apply bg to td, text inside td
+        function gradBg(v,min,max){
+          const n=parseFloat(v);if(isNaN(n)||v===null||v===undefined)return['','−'];
+          const range=max-min,clamped=Math.max(min,Math.min(max,n)),norm=(clamped-min)/range;
+          let bg='';
+          if(norm<0.5){const i=(0.5-norm)*2,a=(0.6*Math.pow(i,0.7)).toFixed(2);bg=`background:rgba(200,40,40,${a})`;}
+          else{const i=(norm-0.5)*2,a=(0.6*Math.pow(i,0.7)).toFixed(2);bg=`background:rgba(30,160,70,${a})`;}
+          return[bg,n.toFixed(1)];
+        }
+        function gradTd(v,min,max){const[bg,txt]=gradBg(v,min,max);return`<td class="num" style="${bg}">${txt}</td>`;}
+        function p1C(v){const n=parseFloat(v);if(isNaN(n))return'-';const cls=n>=0?'positive':'negative';return`<span class="${cls}">${n>=0?'+':''}${n.toFixed(2)}%</span>`;}
+        const grpFmt=g=>{const map={'PRECIOUS METALS':'PMs','COMMODITIES':'Commod','COUNTRIES':'Country','US SECTORS':'US Sect','THEMATIC TECH':'Tech','MINERS':'Miners','US INDICES':'US Idx','GLOBAL FACTORS':'Factors','ENERGY':'Energy','CRYPTO RELATED':'Crypto','CRYPTO':'Crypto','VOLATILITY':'Vol','EMERGING MARKETS':'EM','FIXED INCOME':'Fixed Inc','UK EQUITY':'UK Eq','BONDS':'Bonds','GLOBAL SECTORS':'Gl Sect','GOLD':'Gold','GLOBAL BROAD':'Global','CURRENCIES':'FX'};return`<span class="grp">${map[g]||g||''}</span>`;};
+
+        // Filter to UK ETFs only
+        const uk=d.filter(r=>r.watchlist==='UK ETFS'||r.watchlist==='BOTH');
+
+        // ENTRY: state_changed=true, now in bull states (1 or 2), from worse state
+        const entries=uk.filter(r=>r.state_changed&&r.state<=2)
+          .sort((a,b)=>(a.state-b.state)||((parseFloat(b.rotation_5d)||0)-(parseFloat(a.rotation_5d)||0)));
+
+        // EXIT: state_changed=true, now in fading/bear states (3,5,6)
+        const exits=uk.filter(r=>r.state_changed&&r.state>=3&&r.state!==4)
+          .sort((a,b)=>(b.state-a.state)||((parseFloat(a.rotation_5d)||0)-(parseFloat(b.rotation_5d)||0)));
+
+        // WATCHLIST: EARLY RECV (state=4) with m_roc_5d > 5
+        const watchlist=uk.filter(r=>r.state===4&&parseFloat(r.m_roc_5d)>5)
+          .sort((a,b)=>(parseFloat(b.m_roc_5d)||0)-(parseFloat(a.m_roc_5d)||0));
+
+        // Render entry
+        const entryBody=document.getElementById('alerts-entry-body');
+        if(entries.length===0){
+          entryBody.innerHTML='<tr><td colspan="11" style="color:#555;padding:12px;">No new bull transitions today</td></tr>';
+        }else{
+          entryBody.innerHTML=entries.map(r=>{
+            const prevName=Object.keys(STATE_ORD).find(k=>STATE_ORD[k]===r.prev_state)||'?';
+            const isHeld=positionSymbols.has(r.symbol);
+            const symStyle=isHeld?'border-left:4px solid #fff;padding-left:8px;':'';
+            return`<tr>
+              <td style="${symStyle}"><strong>${r.symbol}</strong></td>
+              <td>${grpFmt(r.group_name)}</td>
+              <td>${stateB(prevName)}</td>
+              <td style="color:#555;">→</td>
+              <td>${stateB(r.state_name)}</td>
+              <td>${formatDirSignal(r.dir_signal)}</td>
+              <td>${formatTrail(r.arrow_trail)}</td>
+              ${gradTd(r.rotation_5d,-100,100)}
+              ${gradTd(r.t_roc_5d,-30,30)}
+              ${gradTd(r.m_roc_5d,-30,30)}
+              ${gradTd(r.trend,-100,100)}
+              ${gradTd(r.mom,-100,100)}
+              <td class="num">${p1C(r.perf_1d)}</td>
+            </tr>`;
+          }).join('');
+        }
+
+        // Render watchlist
+        const wlBody=document.getElementById('alerts-watchlist-body');
+        if(watchlist.length===0){
+          wlBody.innerHTML='<tr><td colspan="11" style="color:#555;padding:12px;">No Early Recv tickers with M.5d &gt; 5 today</td></tr>';
+        }else{
+          wlBody.innerHTML=watchlist.map(r=>{
+            const isHeld=positionSymbols.has(r.symbol);
+            const symStyle=isHeld?'border-left:4px solid #fff;padding-left:8px;':'';
+            return`<tr style="${symStyle}">
+              <td style="${symStyle}"><strong>${r.symbol}</strong></td>
+              <td>${grpFmt(r.group_name)}</td>
+              <td>${stateB(r.state_name)}</td>
+              <td></td>
+              <td></td>
+              <td>${formatDirSignal(r.dir_signal)}</td>
+              <td>${formatTrail(r.arrow_trail)}</td>
+              ${gradTd(r.rotation_5d,-100,100)}
+              ${gradTd(r.t_roc_5d,-30,30)}
+              ${gradTd(r.m_roc_5d,-30,30)}
+              ${gradTd(r.trend,-100,100)}
+              ${gradTd(r.mom,-100,100)}
+              <td class="num">${p1C(r.perf_1d)}</td>
+            </tr>`;
+          }).join('');
+        }
+
+        // Render exits
+        const exitBody=document.getElementById('alerts-exit-body');
+        if(exits.length===0){
+          exitBody.innerHTML='<tr><td colspan="11" style="color:#555;padding:12px;">No exit signals today</td></tr>';
+        }else{
+          exitBody.innerHTML=exits.map(r=>{
+            const prevName=Object.keys(STATE_ORD).find(k=>STATE_ORD[k]===r.prev_state)||'?';
+            const isHeld=positionSymbols.has(r.symbol);
+            const symStyle=isHeld?'border-left:4px solid #fff;padding-left:8px;':'';
+            const rowStyle=isHeld?'background:rgba(248,113,113,0.05)':'';
+            return`<tr style="${rowStyle}">
+              <td style="${symStyle}"><strong>${r.symbol}</strong></td>
+              <td>${grpFmt(r.group_name)}</td>
+              <td>${stateB(prevName)}</td>
+              <td style="color:#555;">→</td>
+              <td>${stateB(r.state_name)}</td>
+              <td>${formatDirSignal(r.dir_signal)}</td>
+              <td>${formatTrail(r.arrow_trail)}</td>
+              ${gradTd(r.rotation_5d,-100,100)}
+              ${gradTd(r.t_roc_5d,-30,30)}
+              ${gradTd(r.m_roc_5d,-30,30)}
+              ${gradTd(r.trend,-100,100)}
+              ${gradTd(r.mom,-100,100)}
+              <td class="num">${p1C(r.perf_1d)}</td>
+            </tr>`;
+          }).join('');
+        }
+
+      }catch(err){console.error('Failed to fetch alerts:',err);}
+    }
 
     buildHeader();
     fetchData();
