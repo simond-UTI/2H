@@ -1,0 +1,367 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2H Velocity Radar</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0a;color:#e0e0e0;padding:16px;min-height:100vh}
+.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:10px}
+h1{font-size:20px;font-weight:600;color:#fff}
+.subtitle{color:#aaa;font-size:11px;margin-top:4px}
+.controls{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+select,button{padding:5px 9px;background:#151515;border:1px solid #2a2a2a;border-radius:4px;color:#e0e0e0;font-size:11px;cursor:pointer}
+select:hover,button:hover{border-color:#444}
+button.active{background:#2a2a2a;border-color:#4ade80;color:#4ade80}
+button.clear-btn{border-color:#666;color:#999}
+button.clear-btn:hover{border-color:#f87171;color:#f87171}
+select.primary{background:#1a2a1a;border-color:#4ade80;color:#4ade80;font-weight:500}
+input[type="text"]{padding:5px 9px;background:#151515;border:1px solid #2a2a2a;border-radius:4px;color:#e0e0e0;font-size:11px;width:90px}
+.main-layout{display:grid;grid-template-columns:1fr 400px;gap:12px;height:calc(100vh - 110px)}
+@media(max-width:1100px){.main-layout{grid-template-columns:1fr}.results-panel{max-height:350px}}
+.chart-wrapper{display:flex;gap:0;min-height:500px}
+.y-axis-label{writing-mode:vertical-rl;transform:rotate(180deg);color:#aaa;font-size:11px;text-transform:uppercase;letter-spacing:1px;padding-right:8px;display:flex;align-items:center;justify-content:center;font-weight:500}
+.chart-container{position:relative;flex:1;background:#0d0d0d;border:1px solid #1a1a1a;border-radius:6px;overflow:hidden}
+.chart-area{position:absolute;top:20px;left:45px;right:10px;bottom:40px}
+.x-axis-label{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);color:#aaa;font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:500}
+.gl{position:absolute;background:#1a1a1a}
+.gl.zero{background:#555}
+.tick{position:absolute;color:#999;font-size:9px}
+.zone{position:absolute;pointer-events:none}
+.zone-name{position:absolute;font-size:13px;font-weight:700;letter-spacing:2px;opacity:0.5;pointer-events:none;text-transform:uppercase;white-space:nowrap;text-align:center;line-height:1.2}
+.trail-line{position:absolute;pointer-events:none;z-index:3;height:1px;transform-origin:0 0}
+.ghost{position:absolute;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:4}
+.dot{position:absolute;width:10px;height:10px;border-radius:50%;transform:translate(-50%,-50%);cursor:pointer;transition:all 0.12s;z-index:10;border:1.5px solid rgba(0,0,0,0.4)}
+.dot:hover{transform:translate(-50%,-50%) scale(1.9);z-index:100}
+.dot.held{box-shadow:0 0 0 2.5px #fff}
+.dot.hl{box-shadow:0 0 0 3px rgba(255,255,255,0.8);z-index:50}
+.sig-rising{background:#4ade80}
+.sig-recovering{background:#86efac}
+.sig-neutral{background:#888}
+.sig-weakening{background:#fb923c}
+.sig-falling{background:#f87171}
+.dot-label{position:absolute;font-size:8px;color:#ddd;white-space:nowrap;pointer-events:none;transform:translate(55%,-50%);z-index:5;text-shadow:1px 1px 3px #000,-1px -1px 3px #000,0 0 6px #000}
+.results-panel{background:#0d0d0d;border:1px solid #1a1a1a;border-radius:6px;display:flex;flex-direction:column;overflow:hidden}
+.rhead{padding:8px 12px;background:#111;border-bottom:1px solid #1a1a1a;font-size:11px;color:#aaa;display:flex;justify-content:space-between}
+.rcount{color:#fff;font-weight:600}
+.rcols{display:grid;grid-template-columns:44px 90px 70px 40px 1fr;gap:3px;padding:5px 8px 5px 10px;background:#0a0a0a;border-bottom:1px solid #1a1a1a;font-size:8px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-weight:600}
+.rlist{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#333 transparent}
+.rlist::-webkit-scrollbar{width:8px}
+.rlist::-webkit-scrollbar-track{background:transparent}
+.rlist::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+.ri{display:grid;grid-template-columns:44px 90px 70px 40px 1fr;gap:3px;padding:5px 8px 5px 10px;cursor:pointer;align-items:center;font-size:11px;border-left:3px solid transparent;border-bottom:1px solid #0f0f0f}
+.ri:hover{background:#1a1a1a}
+.ri.hl{background:#1a2a1a}
+.ri.held{border-left-color:#fff}
+.ri-sym{font-weight:600;color:#fff;font-size:10px}
+.state-badge{display:inline-block;padding:2px 5px;border-radius:3px;font-size:8px;font-weight:600;letter-spacing:0.3px;white-space:nowrap}
+.state-1{background:#166534;color:#4ade80}
+.state-2{background:#14532d;color:#22c55e}
+.state-3{background:#9a3412;color:#fdba74}
+.state-4{background:#1e3a5f;color:#60a5fa}
+.state-5{background:#7f1d1d;color:#fca5a5}
+.state-6{background:#991b1b;color:#f87171}
+.dir-pill{display:inline-block;padding:2px 5px;border-radius:3px;font-size:8px;font-weight:600;letter-spacing:0.3px;white-space:nowrap}
+.dir-rising{background:#14532d;color:#4ade80}
+.dir-recovering{background:#1a3d2a;color:#86efac}
+.dir-neutral{background:#222;color:#888}
+.dir-weakening{background:#431407;color:#fb923c}
+.dir-falling{background:#7f1d1d;color:#f87171}
+.arrow-trail{font-size:13px;letter-spacing:3px;font-family:'Segoe UI Symbol','Apple Color Emoji',sans-serif;line-height:1}
+.tt{position:fixed;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:12px;font-size:11px;z-index:1000;pointer-events:none;display:none;width:280px;box-shadow:0 4px 16px rgba(0,0,0,0.5)}
+.tt.show{display:block}
+.tt-sym{font-size:15px;font-weight:600;color:#fff;margin-bottom:2px}
+.tt-name{color:#888;font-size:10px;margin-bottom:8px}
+.tt-badges{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.tt-trail-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.tt-trail-lbl{color:#aaa;font-size:9px;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap}
+.tt-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;margin-bottom:6px}
+.tt-row{display:flex;justify-content:space-between}
+.tt-lbl{color:#aaa;font-size:10px}
+.tt-val{color:#fff;font-weight:500}
+.tt-val.pos{color:#4ade80}.tt-val.neg{color:#f87171}
+.tt-sep{margin:7px 0;border-top:1px solid #2a2a2a}
+.tt-grp{color:#666;font-size:9px;text-transform:uppercase;letter-spacing:0.5px}
+.legend{display:flex;gap:12px;padding:7px 12px;background:#0d0d0d;border:1px solid #1a1a1a;border-radius:6px;margin-top:8px;flex-wrap:wrap;justify-content:center;align-items:center}
+.leg{display:flex;align-items:center;gap:4px;font-size:10px;color:#bbb}
+.ld{width:9px;height:9px;border-radius:50%;border:1px solid rgba(0,0,0,0.3)}
+.leg-held{width:9px;height:9px;border-radius:50%;background:#888;box-shadow:0 0 0 2.5px #fff}
+.leg-sep{width:1px;height:16px;background:#2a2a2a}
+</style>
+</head>
+<body>
+<div class="header">
+<div><h1>2H Velocity Radar</h1><div class="subtitle"><span id="ts">Loading...</span> &nbsp;&middot;&nbsp; X: Trend Slope (&#177;70) &nbsp;&middot;&nbsp; Y: Rotation 5d (&#177;100) &nbsp;&middot;&nbsp; Colour: Dir Score</div></div>
+<div class="controls">
+  <button id="btnRefresh" style="background:#1a3a1a;border-color:#4ade80;color:#4ade80;">&#8635; Refresh</button>
+  <select id="selSource" class="primary"><option value="intraday">Intraday</option><option value="eod">EOD</option></select>
+  <input type="text" id="inpSearch" placeholder="Search...">
+  <select id="selState"><option value="">All States</option><option value="BULL ACCEL">Bull Accel</option><option value="BULL ESTAB">Bull Estab</option><option value="BULL FADING">Bull Fading</option><option value="EARLY RECV">Early Recv</option><option value="BEAR DECEL">Bear Decel</option><option value="BEAR ACCEL">Bear Accel</option></select>
+  <select id="selSignal"><option value="">All Signals</option><option value="RISING">Rising</option><option value="RECOVERING">Recovering</option><option value="NEUTRAL">Neutral</option><option value="WEAKENING">Weakening</option><option value="FALLING">Falling</option></select>
+  <select id="selGroup"><option value="">All Groups</option></select>
+  <select id="selWatchlist"><option value="">All Universe</option><option value="UK ETFS" selected>UK ETFs</option><option value="MAIN">US / Main</option><option value="BOTH">Both</option></select>
+  <button id="btnHeld">My Positions</button>
+  <button id="btnTrails" class="active">Trails</button>
+  <button id="btnClear" class="clear-btn">Clear</button>
+</div>
+</div>
+<div class="main-layout">
+  <div class="chart-wrapper">
+    <div class="y-axis-label">Rotation 5d</div>
+    <div class="chart-container">
+      <div class="chart-area" id="CA"></div>
+      <div class="x-axis-label">Trend Slope</div>
+    </div>
+  </div>
+  <div class="results-panel">
+    <div class="rhead"><span>RESULTS</span><span class="rcount" id="rcount">0</span></div>
+    <div class="rcols"><span>Sym</span><span>State</span><span>Signal</span><span>Scr</span><span>Trail old&#8594;new</span></div>
+    <div class="rlist" id="RL"></div>
+  </div>
+</div>
+<div class="legend">
+  <div class="leg"><div class="ld" style="background:#4ade80"></div>Rising (&ge;+2.5)</div>
+  <div class="leg"><div class="ld" style="background:#86efac"></div>Recovering (+0.5&#8594;+2.4)</div>
+  <div class="leg"><div class="ld" style="background:#888"></div>Neutral (&#177;0.4)</div>
+  <div class="leg"><div class="ld" style="background:#fb923c"></div>Weakening (-2.5&#8594;-0.6)</div>
+  <div class="leg"><div class="ld" style="background:#f87171"></div>Falling (&le;-2.6)</div>
+  <div class="leg-sep"></div>
+  <div class="leg"><div class="leg-held"></div>Held</div>
+</div>
+<div class="tt" id="TT"></div>
+<script>
+const SB='https://pzskvslhfaituzyukasl.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6c2t2c2xoZmFpdHV6eXVrYXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwNzQyNTAsImV4cCI6MjA3OTY1MDI1MH0.FEZTIIQ4zgdb7uswf70XZI9Ph6ykSeDkfxooIcRIOMw';
+const H={'apikey':SK,'Authorization':'Bearer '+SK};
+let data=[],held=new Set(),src='intraday',trails=true,heldOnly=false,hl=null;
+let fState='',fSignal='',fGroup='',fWatch='UK ETFS';
+const CA=document.getElementById('CA'),TT=document.getElementById('TT'),RL=document.getElementById('RL');
+
+const X_MIN=-70,X_MAX=70;
+const Y_MIN=-100,Y_MAX=100;
+
+function tX(v){var c=Math.max(X_MIN,Math.min(X_MAX,parseFloat(v)||0));return((c-X_MIN)/(X_MAX-X_MIN))*CA.clientWidth}
+function mY(v){var c=Math.max(Y_MIN,Math.min(Y_MAX,parseFloat(v)||0));return CA.clientHeight-((c-Y_MIN)/(Y_MAX-Y_MIN))*CA.clientHeight}
+
+const STATE_ORD={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6};
+const STATE_NUM={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6};
+const SIG_ORD={RISING:1,RECOVERING:2,NEUTRAL:3,WEAKENING:4,FALLING:5};
+
+function dirScoreCol(s){var v=parseFloat(s);if(isNaN(v))return'#555';if(v>=2.5)return'#4ade80';if(v>=0.5)return'#86efac';if(v>=-0.5)return'#888';if(v>=-2.5)return'#fb923c';return'#f87171';}
+function dirScoreCls(s){var v=parseFloat(s);if(isNaN(v))return'sig-neutral';if(v>=2.5)return'sig-rising';if(v>=0.5)return'sig-recovering';if(v>=-0.5)return'sig-neutral';if(v>=-2.5)return'sig-weakening';return'sig-falling';}
+function dirScoreLbl(s){var v=parseFloat(s);if(isNaN(v))return'-';if(v>=2.5)return'RISING';if(v>=0.5)return'RECOVERING';if(v>=-0.5)return'NEUTRAL';if(v>=-2.5)return'WEAKENING';return'FALLING';}
+
+const ARROW_COL={'\u2197':'#4ade80','\u2191':'#4ade80','\u2192':'#86efac','\u2198':'#fbbf24','\u2022':'#555','\u2196':'#fb923c','\u2193':'#fb923c','\u2190':'#f87171','\u2199':'#f87171'};
+function fmtTrail(v){if(!v)return'-';return'<span class="arrow-trail">'+[...v].map(function(c){return'<span style="color:'+(ARROW_COL[c]||'#888')+'">'+c+'</span>'}).join('')+'</span>';}
+function fmtSig(v){if(!v)return'-';var cls={RISING:'dir-rising',RECOVERING:'dir-recovering',NEUTRAL:'dir-neutral',WEAKENING:'dir-weakening',FALLING:'dir-falling'}[v]||'dir-neutral';return'<span class="dir-pill '+cls+'">'+v+'</span>';}
+function fmtState(s){if(!s)return'';return'<span class="state-badge state-'+(STATE_NUM[s]||0)+'">'+s+'</span>';}
+function fmtScore(s){var v=parseFloat(s);if(isNaN(v))return'-';return'<span style="color:'+dirScoreCol(s)+';font-weight:600;">'+v.toFixed(1)+'</span>';}
+
+function matchFilter(d){
+  var q=document.getElementById('inpSearch').value.trim().toUpperCase();
+  if(q&&!d.symbol.toUpperCase().includes(q)&&!(d.name||'').toUpperCase().includes(q))return false;
+  if(heldOnly&&!held.has(d.symbol))return false;
+  if(fState&&d.state_name!==fState)return false;
+  if(fSignal&&d.dir_signal!==fSignal)return false;
+  if(fGroup&&d.group_name!==fGroup)return false;
+  if(fWatch&&d.watchlist!==fWatch)return false;
+  return true;
+}
+function filtered(){return data.filter(matchFilter)}
+
+function drawGrid(){
+  CA.innerHTML='';
+  var w=CA.clientWidth,h=CA.clientHeight,el;
+  var cx=tX(0),cy=mY(0);
+
+  // Quadrant backgrounds
+  el=document.createElement('div');el.className='zone';el.style.cssText='left:'+cx+'px;top:0;width:'+(w-cx)+'px;height:'+cy+'px;background:rgba(30,80,30,0.08)';CA.appendChild(el);
+  el=document.createElement('div');el.className='zone';el.style.cssText='left:0;top:0;width:'+cx+'px;height:'+cy+'px;background:rgba(100,60,20,0.06)';CA.appendChild(el);
+  el=document.createElement('div');el.className='zone';el.style.cssText='left:'+cx+'px;top:'+cy+'px;width:'+(w-cx)+'px;height:'+(h-cy)+'px;background:rgba(100,60,20,0.06)';CA.appendChild(el);
+  el=document.createElement('div');el.className='zone';el.style.cssText='left:0;top:'+cy+'px;width:'+cx+'px;height:'+(h-cy)+'px;background:rgba(120,20,20,0.08)';CA.appendChild(el);
+
+  // Gridlines x
+  [-50,-25,0,25,50].forEach(function(v){
+    var z=v===0;
+    var vl=document.createElement('div');vl.className='gl'+(z?' zero':'');
+    vl.style.left=tX(v)+'px';vl.style.top='0';vl.style.width=(z?'2px':'1px');vl.style.height='100%';CA.appendChild(vl);
+    var xt=document.createElement('div');xt.className='tick';xt.style.left=tX(v)+'px';xt.style.bottom='-15px';xt.style.transform='translateX(-50%)';xt.textContent=v;CA.appendChild(xt);
+  });
+  // Gridlines y
+  [-75,-50,-25,0,25,50,75].forEach(function(v){
+    var z=v===0;
+    var hl2=document.createElement('div');hl2.className='gl'+(z?' zero':'');
+    hl2.style.left='0';hl2.style.top=mY(v)+'px';hl2.style.width='100%';hl2.style.height=(z?'2px':'1px');CA.appendChild(hl2);
+    var yt=document.createElement('div');yt.className='tick';yt.style.left='-30px';yt.style.top=mY(v)+'px';yt.style.transform='translateY(-50%)';yt.textContent=v;CA.appendChild(yt);
+  });
+
+  // Quadrant labels
+  [{t:'CONFIRMING',x:45,y:75,c:'#4ade80'},{t:'EARLY TURN',x:-35,y:75,c:'#fbbf24'},
+   {t:'FADING',x:45,y:-65,c:'#fb923c'},{t:'DETERIORATING',x:-35,y:-65,c:'#f87171'}
+  ].forEach(function(l){
+    var e=document.createElement('div');e.className='zone-name';
+    e.style.left=tX(l.x)+'px';e.style.top=mY(l.y)+'px';
+    e.style.transform='translate(-50%,-50%)';e.style.color=l.c;
+    e.textContent=l.t;CA.appendChild(e);
+  });
+}
+
+function drawLine(x0,y0,x1,y1,col,op){
+  var dx=x1-x0,dy=y1-y0,len=Math.sqrt(dx*dx+dy*dy);if(len<1)return;
+  var e=document.createElement('div');e.className='trail-line';
+  e.style.left=x0+'px';e.style.top=y0+'px';e.style.width=len+'px';
+  e.style.transform='rotate('+Math.atan2(dy,dx)*180/Math.PI+'deg)';
+  e.style.background=col;e.style.opacity=op;CA.appendChild(e);
+}
+
+function drawPoints(){
+  CA.querySelectorAll('.dot,.dot-label,.ghost,.trail-line').forEach(function(e){e.remove()});
+  filtered().forEach(function(d){
+    var ts=parseFloat(d.trend_slope)||0;
+    var rot=parseFloat(d.rotation_5d)||0;
+    var col=dirScoreCol(d.dir_score);
+    var x=tX(ts),y=mY(rot);
+
+    // Trails — approximate prior positions using t_roc_5d and m_roc_5d as proxy deltas
+    if(trails&&d.t_roc_5d!==null&&d.t_roc_5d!==undefined){
+      var tr5=parseFloat(d.t_roc_5d)||0,mr5=parseFloat(d.m_roc_5d)||0;
+      var ts1=ts-tr5*0.5,rot1=rot-mr5*0.5;
+      var ts5=ts-tr5,rot5=rot-mr5;
+      drawLine(tX(ts5),mY(rot5),tX(ts1),mY(rot1),col,0.22);
+      drawLine(tX(ts1),mY(rot1),x,y,col,0.45);
+      var g5=document.createElement('div');g5.className='ghost';
+      g5.style.cssText='left:'+tX(ts5)+'px;top:'+mY(rot5)+'px;width:4px;height:4px;background:'+col+';opacity:0.28';CA.appendChild(g5);
+      var g1=document.createElement('div');g1.className='ghost';
+      g1.style.cssText='left:'+tX(ts1)+'px;top:'+mY(rot1)+'px;width:5px;height:5px;background:'+col+';opacity:0.45';CA.appendChild(g1);
+    }
+
+    var dot=document.createElement('div');
+    dot.className='dot '+dirScoreCls(d.dir_score)+(held.has(d.symbol)?' held':'')+(d.symbol===hl?' hl':'');
+    dot.style.left=x+'px';dot.style.top=y+'px';dot.dataset.sym=d.symbol;
+    dot.addEventListener('mouseenter',function(e){hlSet(d.symbol);showTT(d,e)});
+    dot.addEventListener('mousemove',posTT);
+    dot.addEventListener('mouseleave',function(){hlSet(null);hideTT()});
+    CA.appendChild(dot);
+
+    var lb=document.createElement('div');lb.className='dot-label';
+    lb.style.left=x+'px';lb.style.top=y+'px';lb.textContent=d.symbol;CA.appendChild(lb);
+  });
+}
+
+function renderList(){
+  var fd=filtered();
+  document.getElementById('rcount').textContent=fd.length;
+  var sorted=fd.slice().sort(function(a,b){
+    var sa=STATE_ORD[a.state_name]||9,sb=STATE_ORD[b.state_name]||9;
+    if(sa!==sb)return sa-sb;
+    var qa=SIG_ORD[a.dir_signal]||3,qb=SIG_ORD[b.dir_signal]||3;
+    return qa-qb;
+  });
+  RL.innerHTML=sorted.map(function(d){
+    return'<div class="ri'+(held.has(d.symbol)?' held':'')+(d.symbol===hl?' hl':'')+'" data-sym="'+d.symbol+'">'
+      +'<span class="ri-sym">'+d.symbol+'</span>'
+      +'<span>'+fmtState(d.state_name)+'</span>'
+      +'<span>'+fmtSig(d.dir_signal)+'</span>'
+      +'<span>'+fmtScore(d.dir_score)+'</span>'
+      +'<span>'+fmtTrail(d.arrow_trail)+'</span>'
+      +'</div>';
+  }).join('');
+  RL.querySelectorAll('.ri').forEach(function(el){
+    el.addEventListener('mouseenter',function(){
+      hlSet(el.dataset.sym);
+      var d=data.find(function(r){return r.symbol===el.dataset.sym});
+      if(d){var rect=el.getBoundingClientRect();showTT(d,{clientX:rect.left-10,clientY:rect.top+rect.height/2});}
+    });
+    el.addEventListener('mouseleave',function(){hlSet(null);hideTT()});
+    el.addEventListener('click',function(){
+      var dot=CA.querySelector('.dot[data-sym="'+el.dataset.sym+'"]');
+      if(dot)dot.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
+      hlSet(el.dataset.sym);
+    });
+  });
+}
+
+function hlSet(s){
+  hl=s;
+  CA.querySelectorAll('.dot').forEach(function(d){d.classList.toggle('hl',d.dataset.sym===s)});
+  RL.querySelectorAll('.ri').forEach(function(r){r.classList.toggle('hl',r.dataset.sym===s)});
+}
+
+function showTT(d,e){
+  var ts=parseFloat(d.trend_slope)||0,rot=parseFloat(d.rotation_5d)||0;
+  var mt=parseFloat(d.m_minus_t)||0,t=parseFloat(d.trend)||0,m=parseFloat(d.mom)||0;
+  var t5=parseFloat(d.t_roc_5d)||0,m5=parseFloat(d.m_roc_5d)||0;
+  var rng=d.range_pos_20d!==null&&d.range_pos_20d!==undefined?Math.round(parseFloat(d.range_pos_20d)*100)+'%':'-';
+  var sc=d.dir_score!==null&&d.dir_score!==undefined?parseFloat(d.dir_score):null;
+  TT.innerHTML=
+    '<div class="tt-sym">'+d.symbol+'</div>'
+    +'<div class="tt-name">'+(d.name||'')+'</div>'
+    +'<div class="tt-badges">'+fmtState(d.state_name)+fmtSig(d.dir_signal)+'</div>'
+    +'<div class="tt-trail-row"><span class="tt-trail-lbl">Trail:</span>'+fmtTrail(d.arrow_trail)+'</div>'
+    +'<div class="tt-sep"></div>'
+    +'<div class="tt-grid">'
+    +'<div class="tt-row"><span class="tt-lbl">Dir Score</span><span class="tt-val" style="color:'+dirScoreCol(d.dir_score)+'">'+(sc!==null?sc.toFixed(2)+' — '+dirScoreLbl(d.dir_score):'-')+'</span></div>'
+    +'<div class="tt-row"><span class="tt-lbl">Trend Slope</span><span class="tt-val '+(ts>=0?'pos':'neg')+'">'+ts.toFixed(1)+'</span></div>'
+    +'<div class="tt-row"><span class="tt-lbl">Rotation 5d</span><span class="tt-val '+(rot>=0?'pos':'neg')+'">'+rot.toFixed(1)+'</span></div>'
+    +'<div class="tt-row"><span class="tt-lbl">M-T</span><span class="tt-val '+(mt>=0?'pos':'neg')+'">'+mt.toFixed(1)+'</span></div>'
+    +'<div class="tt-row"><span class="tt-lbl">Trend / Mom</span><span class="tt-val">'+t.toFixed(1)+' / '+m.toFixed(1)+'</span></div>'
+    +'<div class="tt-row"><span class="tt-lbl">T.5d / M.5d</span><span class="tt-val">'+t5.toFixed(1)+' / '+m5.toFixed(1)+'</span></div>'
+    +'<div class="tt-row"><span class="tt-lbl">Range 20d</span><span class="tt-val">'+rng+'</span></div>'
+    +'</div>'
+    +(d.group_name?'<div class="tt-grp">'+d.group_name+'</div>':'');
+  TT.classList.add('show');posTT(e);
+}
+function posTT(e){var tw=290,x=e.clientX+15,y=e.clientY-10;if(e.clientX>window.innerWidth-tw-50)x=e.clientX-tw-15;TT.style.left=x+'px';TT.style.top=y+'px';var r=TT.getBoundingClientRect();if(r.bottom>window.innerHeight-10)TT.style.top=(e.clientY-r.height-10)+'px';if(r.top<10)TT.style.top='10px';}
+function hideTT(){TT.classList.remove('show')}
+function refresh(){drawGrid();drawPoints();renderList()}
+
+async function load(){
+  try{
+    var pR=await fetch(SB+'/rest/v1/positions?select=symbol',{headers:H});
+    if(pR.ok){var p=await pR.json();held=new Set(p.map(function(r){return r.symbol}));if(held.has('BIT-XBTE'))held.add('BTCUSD')}
+    var vw=src==='eod'?'v_universe_clean_eod':'v_universe_clean';
+    var fields='symbol,name,group_name,watchlist,state,state_name,trend,mom,dir_signal,dir_score,arrow_trail,trend_slope,mom_slope,rotation_5d,m_minus_t,t_roc_5d,m_roc_5d,range_pos_20d,bar_timestamp';
+    var vR=await fetch(SB+'/rest/v1/'+vw+'?select='+fields,{headers:H});
+    if(!vR.ok)throw new Error('Fetch failed: '+vR.status);
+    data=await vR.json();
+    if(!Array.isArray(data)||data.length===0){
+      document.getElementById('ts').textContent='No data returned';
+      refresh();return;
+    }
+    var latest=data.reduce(function(mx,r){var d=new Date(r.bar_timestamp);return(!isNaN(d)&&d>mx)?d:mx},new Date(0));
+    document.getElementById('ts').textContent=(src==='eod'?'EOD':'Live')+': '+latest.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+latest.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    var grps=[...new Set(data.map(function(d){return d.group_name}).filter(Boolean))].sort();
+    var gs=document.getElementById('selGroup');gs.innerHTML='<option value="">All Groups</option>';
+    grps.forEach(function(g){var o=document.createElement('option');o.value=g;o.textContent=g;gs.appendChild(o)});
+    refresh();
+  }catch(err){
+    console.error('Load error:',err);
+    document.getElementById('ts').textContent='Error: '+err.message;
+  }
+}
+
+document.getElementById('btnRefresh').addEventListener('click',function(){document.getElementById('ts').textContent='Refreshing...';load()});
+document.getElementById('selSource').addEventListener('change',function(e){src=e.target.value;load()});
+document.getElementById('inpSearch').addEventListener('input',refresh);
+document.getElementById('selState').addEventListener('change',function(e){fState=e.target.value;refresh()});
+document.getElementById('selSignal').addEventListener('change',function(e){fSignal=e.target.value;refresh()});
+document.getElementById('selGroup').addEventListener('change',function(e){fGroup=e.target.value;refresh()});
+document.getElementById('selWatchlist').addEventListener('change',function(e){fWatch=e.target.value;refresh()});
+document.getElementById('btnHeld').addEventListener('click',function(e){heldOnly=!heldOnly;e.target.classList.toggle('active',heldOnly);refresh()});
+document.getElementById('btnTrails').addEventListener('click',function(e){trails=!trails;e.target.classList.toggle('active',trails);refresh()});
+document.getElementById('btnClear').addEventListener('click',function(){
+  fState='';fSignal='';fGroup='';fWatch='UK ETFS';heldOnly=false;trails=true;hl=null;
+  document.getElementById('inpSearch').value='';document.getElementById('selState').value='';
+  document.getElementById('selSignal').value='';document.getElementById('selGroup').value='';
+  document.getElementById('selWatchlist').value='UK ETFS';
+  document.getElementById('btnHeld').classList.remove('active');
+  document.getElementById('btnTrails').classList.add('active');
+  refresh();
+});
+window.addEventListener('resize',refresh);
+load();
+</script>
+</body>
+</html>
