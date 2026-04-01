@@ -265,8 +265,8 @@
         <thead>
           <tr>
             <th class="col-symbol">Sym</th>
-            <th style="width:55px;">Prev</th>
             <th>Grp</th>
+            <th style="width:55px;">Prev</th>
             <th style="min-width:110px;">State</th>
             <th style="width:80px;">Cross</th>
             <th style="width:90px;">Signal.10d</th>
@@ -890,7 +890,7 @@
           const prevCell=prevName?`<td>${stateB(prevName)}</td>`:`<td></td>`;
           const cross=r.cross_label||'';
           const extFlag=r.extreme?`<span style="background:#7f1d1d;color:#fca5a5;padding:1px 4px;border-radius:2px;font-size:10px;font-weight:700;">HIGH</span>`:'';
-          return`<tr style="${rowStyle}"><td style="${symStyle}"><strong>${r.symbol}</strong></td>${prevCell}<td>${grpFmt(r.group_name)}</td><td>${stateB(r.state_name)}</td><td style="font-size:11px;color:#888;">${cross}</td><td>${formatDirSignal(r.dir_signal)}</td><td>${formatTrail(r.arrow_trail)}</td>${gradTd(r.trend,-100,100)}${gradTd(r.mom,-100,100)}${gradTd(r.range_pos_20d*100,0,100)}${gradTd(r.rotation_5d,-100,100)}${gradTd(r.t_roc_5d,-30,30)}${gradTd(r.m_roc_5d,-30,30)}<td class="num">${extFlag}</td><td class="num">${p1C(r.perf_1d)}</td><td class="num">${p1C(r.perf_5d)}</td><td class="num">${p1C(r.perf_1m)}</td></tr>`;
+          return`<tr style="${rowStyle}"><td style="${symStyle}"><strong>${r.symbol}</strong></td><td>${grpFmt(r.group_name)}</td>${prevCell}<td>${stateB(r.state_name)}</td><td style="font-size:11px;color:#888;">${cross}</td><td>${formatDirSignal(r.dir_signal)}</td><td>${formatTrail(r.arrow_trail)}</td>${gradTd(r.trend,-100,100)}${gradTd(r.mom,-100,100)}${gradTd(r.range_pos_20d*100,0,100)}${gradTd(r.rotation_5d,-100,100)}${gradTd(r.t_roc_5d,-30,30)}${gradTd(r.m_roc_5d,-30,30)}<td class="num">${extFlag}</td><td class="num">${p1C(r.perf_1d)}</td><td class="num">${p1C(r.perf_5d)}</td><td class="num">${p1C(r.perf_1m)}</td></tr>`;
         }
         function dividerRow(label,color){return`<tr><td colspan="17" style="background:#111;color:${color};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:6px 12px;">${label}</td></tr>`;}
         function emptyRow(msg){return`<tr><td colspan="17" style="color:#444;padding:8px 12px;font-size:11px;">${msg}</td></tr>`;}
