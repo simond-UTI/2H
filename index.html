@@ -264,23 +264,31 @@
       <table>
         <thead>
           <tr>
-            <th class="col-symbol">Sym</th>
-            <th>Grp</th>
-            <th style="width:55px;">Prev</th>
-            <th style="min-width:110px;">State</th>
-            <th style="width:80px;">Cross</th>
-            <th style="width:90px;">Signal.10d</th>
-            <th>Trail <span style="font-size:9px;color:#444;font-weight:400;text-transform:none;">old→new</span></th>
-            <th class="num">Trnd</th>
-            <th class="num">Mom</th>
-            <th class="num">20d%</th>
-            <th class="num">RS.5d</th>
-            <th class="num">T.5d</th>
-            <th class="num">M.5d</th>
-            <th class="num">Ext</th>
-            <th class="num">1d%</th>
-            <th class="num">5d%</th>
-            <th class="num">1m%</th>
+            <th class="section-header freeze-col col-symbol"></th>
+            <th class="section-header" colspan="3">STATE</th>
+            <th class="section-header" colspan="2">MOMENTUM</th>
+            <th class="section-header" colspan="3">LEVELS</th>
+            <th class="section-header" colspan="3">ROC</th>
+            <th class="section-header" colspan="1">FLAGS</th>
+            <th class="section-header" colspan="3">PRICE %</th>
+          </tr>
+          <tr>
+            <th class="col-symbol freeze-col">SYM</th>
+            <th>GRP</th>
+            <th>PREV</th>
+            <th class="section-end">STATE</th>
+            <th>SIGNAL.10D</th>
+            <th class="section-end">TRAIL <span style="font-size:9px;color:#444;font-weight:400;text-transform:none;">old→new</span></th>
+            <th class="num">TRND</th>
+            <th class="num">MOM</th>
+            <th class="num section-end">20D%</th>
+            <th class="num">RS.5D</th>
+            <th class="num">T.5D</th>
+            <th class="num section-end">M.5D</th>
+            <th class="num section-end">EXT</th>
+            <th class="num">1D%</th>
+            <th class="num">5D%</th>
+            <th class="num">1M%</th>
           </tr>
         </thead>
         <tbody id="alerts-body"><tr><td colspan="17" class="loading">Loading...</td></tr></tbody>
@@ -445,19 +453,7 @@
     //   Tier 5: any bull state + trend<=75 + M.5d<=0 — exit zone (red)
     // Tier 6+: BULL FADING, EARLY RECV, BEAR
     // Sort: tier asc → trend desc → RS.5d desc
-    function getRankTier(r){
-      const s=r.state_name||'';
-      const trend=parseFloat(r.trend)||0;
-      const mRoc=parseFloat(r.m_roc_5d)||0;
-      const mPos=mRoc>0;
-      if(s==='BULL ACCEL'&&trend>75)return 1;
-      if(s==='BULL ESTAB'&&trend>75&&mPos)return 2;
-      if(s==='BULL ESTAB'&&trend>75&&!mPos)return 3;
-      if((s==='BULL ACCEL'||s==='BULL ESTAB')&&trend<=75&&mPos)return 4;
-      if((s==='BULL ACCEL'||s==='BULL ESTAB')&&trend<=75&&!mPos)return 5;
-      const stateOrder={'BULL FADING':6,'EARLY RECV':7,'BEAR DECEL':8,'BEAR ACCEL':9};
-      return stateOrder[s]||10;
-    }
+    function getRankTier(r){return parseInt(r.tier)||9;}
 
     // Tier border colours: green=enter, yellow=watch, red=exit
     const TIER_COLORS={1:'#4ade80',2:'#22c55e',3:'#16a34a',4:'#a3e635',5:'#f87171'};
@@ -520,7 +516,7 @@
       return'';
     }
 
-    function formatState(s,changed){if(!s)return'';const stateNum={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6}[s]||0;const badge=changed?'<span class="state-new">NEW</span>':'';return`<span class="state-badge state-${stateNum}">${s}</span>${badge}`;}
+    function formatState(s,changed,crosses,prevStateName){if(!s)return'';const stateNum={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6};const n=stateNum[s]||0;let badge='';if(changed&&prevStateName){const prevN=stateNum[prevStateName]||0;const improved=n<prevN;const bg=improved?'#4ade80':'#f87171';badge=`<span class="state-new" style="background:${bg};color:#000;">NEW</span>`;}else if(changed){badge=`<span class="state-new">NEW</span>`;}return`<span class="state-badge state-${n}">${s}</span>${badge}`;}
     function formatGroup(g){if(!g)return'';const map={'PRECIOUS METALS':'PMs','COMMODITIES':'Commod','COUNTRIES':'Country','US SECTORS':'US Sect','THEMATIC TECH':'Tech','MINERS':'Miners','US INDICES':'US Idx','GLOBAL FACTORS':'Factors','ENERGY':'Energy','CRYPTO RELATED':'Crypto','CRYPTO':'Crypto','VOLATILITY':'Vol','EMERGING MARKETS':'EM','FIXED INCOME':'Fixed Inc','UK EQUITY':'UK Eq','BONDS':'Bonds','GLOBAL SECTORS':'Gl Sect','GOLD':'Gold','GLOBAL BROAD':'Global','CURRENCIES':'FX'};return`<span class="grp">${map[g]||g}</span>`;}
     function formatExt(v){if(!v)return'';const cls=v==='HIGH'?'ext-high':'ext-low';return`<span class="ext ${cls}">${v}</span>`;}
     function formatNum(v){if(v===null||v===undefined||v==='')return'-';const num=parseFloat(v);if(isNaN(num))return v;return num%1===0?num:num.toFixed(1);}
@@ -531,7 +527,7 @@
       const v=row[col.key];
       if(col.key==='dir_signal')return formatDirSignal(v);
       if(col.key==='arrow_trail')return formatTrail(v);
-      if(col.key==='state_name')return formatState(v,row.state_changed);
+      if(col.key==='state_name'){const stateNames={1:'BULL ACCEL',2:'BULL ESTAB',3:'BULL FADING',4:'EARLY RECV',5:'BEAR DECEL',6:'BEAR ACCEL'};const prevName=row.prev_state_name||stateNames[parseInt(row.prev_state)]||null;return formatState(v,row.state_changed,row._crosses||[],prevName);}
       if(col.key==='cross')return`<span class="cross-cell">${formatCrossCell(row._crosses||[])}</span>`;
       if(col.key==='group_name')return formatGroup(v);
       if(col.key==='extreme')return formatExt(v);
@@ -863,11 +859,7 @@
         const latest=d.reduce((mx,r)=>{const t=new Date(r.bar_timestamp);return t>mx?t:mx},new Date(0));
         document.getElementById('alerts-ts').textContent='Last updated: '+latest.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+latest.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
         const STATE_ORD={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6};
-        function stateB(s){if(!s)return'-';const n=STATE_ORD[s]||0;return`<span class="state-badge state-${n}">${s}</span>`;}
-        function gradBg(v,min,max){const n=parseFloat(v);if(isNaN(n)||v===null||v===undefined)return['','−'];const range=max-min,clamped=Math.max(min,Math.min(max,n)),norm=(clamped-min)/range;let bg='';if(norm<0.5){const i=(0.5-norm)*2,a=(0.6*Math.pow(i,0.7)).toFixed(2);bg=`background:rgba(200,40,40,${a})`;}else{const i=(norm-0.5)*2,a=(0.6*Math.pow(i,0.7)).toFixed(2);bg=`background:rgba(30,160,70,${a})`;}return[bg,n.toFixed(1)];}
-        function gradTd(v,min,max){const[bg,txt]=gradBg(v,min,max);return`<td class="num" style="${bg}">${txt}</td>`;}
-        function p1C(v){const n=parseFloat(v);if(isNaN(n))return'-';const cls=n>=0?'positive':'negative';return`<span class="${cls}">${n>=0?'+':''}${n.toFixed(2)}%</span>`;}
-        const grpFmt=g=>{const map={'PRECIOUS METALS':'PMs','COMMODITIES':'Commod','COUNTRIES':'Country','US SECTORS':'US Sect','THEMATIC TECH':'Tech','MINERS':'Miners','US INDICES':'US Idx','GLOBAL FACTORS':'Factors','ENERGY':'Energy','CRYPTO RELATED':'Crypto','CRYPTO':'Crypto','VOLATILITY':'Vol','EMERGING MARKETS':'EM','FIXED INCOME':'Fixed Inc','UK EQUITY':'UK Eq','BONDS':'Bonds','GLOBAL SECTORS':'Gl Sect','GOLD':'Gold','GLOBAL BROAD':'Global','CURRENCIES':'FX'};return`<span class="grp">${map[g]||g||''}</span>`;};
+        const grpFmt=g=>formatGroup(g);
         const uk=d.filter(r=>r.watchlist==='UK ETFS'||r.watchlist==='BOTH');
         const reAccel=uk.filter(r=>r.state_changed&&r.state_name==='BULL ACCEL')
           .sort((a,b)=>(parseFloat(b.rotation_5d)||0)-(parseFloat(a.rotation_5d)||0));
@@ -884,16 +876,50 @@
           if(r.prev_state)return Object.keys(STATE_ORD).find(k=>STATE_ORD[k]===parseInt(r.prev_state))||'?';
           return'?';
         }
+        // Alert-specific columns definition (matches universe minus size cols, plus PREV)
+        const ALERT_COLS=[
+          {key:'group_name',  label:'GRP',       section:'state'},
+          {key:'_prev',       label:'PREV',       section:'state'},
+          {key:'state_name',  label:'STATE',      section:'state',  sectionEnd:true},
+          {key:'dir_signal',  label:'SIGNAL.10D', section:'momentum'},
+          {key:'arrow_trail', label:'TRAIL',      section:'momentum',sectionEnd:true},
+          {key:'trend',       label:'TRND',       section:'levels',  numeric:true,format:'gradient',min:-100,max:100},
+          {key:'mom',         label:'MOM',        section:'levels',  numeric:true,format:'gradient',min:-100,max:100},
+          {key:'range_pos_20d',label:'20D%',      section:'levels',  numeric:true,format:'pct100',  sectionEnd:true},
+          {key:'rotation_5d', label:'RS.5D',      section:'velocity',numeric:true,format:'gradient',min:-100,max:100},
+          {key:'t_roc_5d',    label:'T.5D',       section:'velocity',numeric:true,format:'gradient',min:-30,max:30},
+          {key:'m_roc_5d',    label:'M.5D',       section:'velocity',numeric:true,format:'gradient',min:-30,max:30,sectionEnd:true},
+          {key:'extreme',     label:'EXT',        section:'flags',   sectionEnd:true},
+          {key:'perf_1d',     label:'1D%',        section:'price',   numeric:true,format:'gradient',min:-5,max:5},
+          {key:'perf_5d',     label:'5D%',        section:'price',   numeric:true,format:'gradient',min:-10,max:10},
+          {key:'perf_1m',     label:'1M%',        section:'price',   numeric:true,format:'gradient',min:-20,max:20,sectionEnd:true},
+        ];
         function alertRow(r,prevName,isHeld,isExit){
+          r._crosses=buildCross(r);
           const symStyle=isHeld?'border-left:4px solid #fff;padding-left:8px;':'';
           const rowStyle=isExit&&isHeld?'background:rgba(248,113,113,0.05)':'';
-          const prevCell=prevName?`<td>${stateB(prevName)}</td>`:`<td></td>`;
-          const cross=`<span class="cross-cell">${formatCrossCell(r._crosses||[])}</span>`;
-          const extFlag=r.extreme?`<span style="background:#7f1d1d;color:#fca5a5;padding:1px 4px;border-radius:2px;font-size:10px;font-weight:700;">HIGH</span>`:'';
-          return`<tr style="${rowStyle}"><td style="${symStyle}"><strong>${r.symbol}</strong></td><td>${grpFmt(r.group_name)}</td>${prevCell}<td>${stateB(r.state_name)}</td><td>${cross}</td><td>${formatDirSignal(r.dir_signal)}</td><td>${formatTrail(r.arrow_trail)}</td>${gradTd(r.trend,-100,100)}${gradTd(r.mom,-100,100)}${gradTd(r.range_pos_20d*100,0,100)}${gradTd(r.rotation_5d,-100,100)}${gradTd(r.t_roc_5d,-30,30)}${gradTd(r.m_roc_5d,-30,30)}<td class="num">${extFlag}</td><td class="num">${p1C(r.perf_1d)}</td><td class="num">${p1C(r.perf_5d)}</td><td class="num">${p1C(r.perf_1m)}</td></tr>`;
+          const tier=getRankTier(r);
+          const tierColor=TIER_COLORS[tier]||'#555';
+          // inject prev name for rendering
+          r._prev=prevName||'';
+          const cells=ALERT_COLS.map(col=>{
+            const bg=getBgColor(r[col.key],col);
+            const classes=[col.numeric?'num':'',col.sectionEnd?'section-end':''].filter(Boolean).join(' ');
+            const styleStr=bg?`style="background:${bg}"`:'';
+            if(col.key==='_prev'){
+              const ps=r._prev;
+              const pn=ps?{'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6}[ps]||0:0;
+              return`<td class="${classes}">${ps?`<span class="state-badge state-${pn}">${ps}</span>`:''}</td>`;
+            }
+            if(col.key==='state_name'){
+              return`<td class="${classes}" style="border-left:3px solid ${tierColor};padding-left:6px;">${formatCell(r,col)}</td>`;
+            }
+            return`<td class="${classes}" ${styleStr}>${formatCell(r,col)}</td>`;
+          }).join('');
+          return`<tr style="${rowStyle}"><td class="freeze-col col-symbol" style="${symStyle}"><strong>${r.symbol}</strong></td>${cells}</tr>`;
         }
-        function dividerRow(label,color){return`<tr><td colspan="17" style="background:#111;color:${color};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:6px 12px;">${label}</td></tr>`;}
-        function emptyRow(msg){return`<tr><td colspan="17" style="color:#444;padding:8px 12px;font-size:11px;">${msg}</td></tr>`;}
+        function dividerRow(label,color){return`<tr><td colspan="16" style="background:#111;color:${color};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:6px 12px;">${label}</td></tr>`;}
+        function emptyRow(msg){return`<tr><td colspan="16" style="color:#444;padding:8px 12px;font-size:11px;">${msg}</td></tr>`;}
         let html='';
         html+=dividerRow('⚡ Re-Accelerating — Into Bull Accel','#4ade80');
         html+=reAccel.length?reAccel.map(r=>alertRow(r,getPrevStateName(r),positionSymbols.has(r.symbol),false)).join(''):emptyRow('No re-acceleration today');
