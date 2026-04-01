@@ -531,7 +531,7 @@
       if(col.key==='cross')return`<span class="cross-cell">${formatCrossCell(row._crosses||[])}</span>`;
       if(col.key==='group_name')return formatGroup(v);
       if(col.key==='extreme')return formatExt(v);
-      if(col.key==='range_pos_20d'&&v)return Math.round(parseFloat(v)*100);
+      if(col.key==='symbol')return`<strong>${v||''}</strong>`;
       if(col.key==='port_pct')return v?`<span class="size-pct">${formatNum(v)}%</span>`:'-';
       if(col.key==='max_pct')return v?`<span class="size-max">${formatNum(v)}%</span>`:'-';
       if(col.key==='pct_of_max')return formatPctMax(v);
@@ -916,7 +916,7 @@
             }
             return`<td class="${classes}" ${styleStr}>${formatCell(r,col)}</td>`;
           }).join('');
-          return`<tr style="${rowStyle}"><td class="freeze-col col-symbol" style="${symStyle}"><strong>${r.symbol}</strong></td>${cells}</tr>`;
+          return`<tr style="${rowStyle}"><td class="freeze-col col-symbol" style="${symStyle}">${formatCell(r,{key:'symbol'})}</td>${cells}</tr>`;
         }
         function dividerRow(label,color){return`<tr><td colspan="16" style="background:#111;color:${color};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:6px 12px;">${label}</td></tr>`;}
         function emptyRow(msg){return`<tr><td colspan="16" style="color:#444;padding:8px 12px;font-size:11px;">${msg}</td></tr>`;}
