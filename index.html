@@ -282,8 +282,8 @@
             <th class="num">TRND</th>
             <th class="num">MOM</th>
             <th class="num section-end">20D%</th>
-            <th class="num">RS.5D</th>
-            <th class="num">T.5D</th>
+            <th class="num">T.13D</th>
+            <th class="num">M.10D</th>
             <th class="num section-end">M.5D</th>
             <th class="num section-end">EXT</th>
             <th class="num">1D%</th>
@@ -366,7 +366,7 @@
       {id:'state',   label:'STATE',     cols:3},
       {id:'momentum',label:'MOMENTUM',  cols:2},
       {id:'levels',  label:'LEVELS',    cols:3},
-      {id:'velocity',label:'ROC',       cols:3},
+      {id:'roc',     label:'ROC',       cols:3},
       {id:'flags',   label:'FLAGS',     cols:1},
       {id:'price',   label:'PRICE %',   cols:3},
       {id:'usd',     label:'USD $',     cols:2}
@@ -377,12 +377,14 @@
       {id:'state',   label:'STATE',     cols:3},
       {id:'momentum',label:'MOMENTUM',  cols:2},
       {id:'levels',  label:'LEVELS',    cols:3},
-      {id:'velocity',label:'ROC',       cols:3},
+      {id:'roc',     label:'ROC',       cols:3},
       {id:'flags',   label:'FLAGS',     cols:1},
       {id:'price',   label:'PRICE %',   cols:3},
       {id:'usd',     label:'USD $',     cols:2}
     ];
 
+    // ROC columns: T.13d (trend velocity 13d), M.10d (mom velocity 10d), M.5d (mom velocity 5d)
+    // These are the tier gate signals — what you see is what drives the tier
     const columnsBase=[
       {key:'symbol',       label:'Sym',        section:'info',     freeze:true,freezeClass:'col-symbol',sectionEnd:true},
       {key:'group_name',   label:'Grp',        section:'state'},
@@ -393,9 +395,9 @@
       {key:'trend',        label:'Trnd',       section:'levels',   numeric:true,format:'gradient',min:-100,max:100},
       {key:'mom',          label:'Mom',        section:'levels',   numeric:true,format:'gradient',min:-100,max:100},
       {key:'range_pos_20d',label:'20d%',       section:'levels',   numeric:true,format:'pct100',sectionEnd:true},
-      {key:'rotation_5d',  label:'RS.5d',      section:'velocity', numeric:true,format:'gradient',min:-100,max:100},
-      {key:'t_roc_5d',     label:'T.5d',       section:'velocity', numeric:true,format:'gradient',min:-30,max:30},
-      {key:'m_roc_5d',     label:'M.5d',       section:'velocity', numeric:true,format:'gradient',min:-30,max:30,sectionEnd:true},
+      {key:'t_roc_13d',    label:'T.13d',      section:'roc',      numeric:true,format:'gradient',min:-100,max:100},
+      {key:'m_roc_10d',    label:'M.10d',      section:'roc',      numeric:true,format:'gradient',min:-100,max:100},
+      {key:'m_roc_5d',     label:'M.5d',       section:'roc',      numeric:true,format:'gradient',min:-100,max:100,sectionEnd:true},
       {key:'extreme',      label:'Ext',        section:'flags',    sortType:'ext',sectionEnd:true},
       {key:'perf_1d',      label:'1d%',        section:'price',    numeric:true,format:'gradient',min:-5,max:5},
       {key:'perf_5d',      label:'5d%',        section:'price',    numeric:true,format:'gradient',min:-10,max:10},
@@ -418,9 +420,9 @@
       {key:'trend',        label:'Trnd',       section:'levels',   numeric:true,format:'gradient',min:-100,max:100},
       {key:'mom',          label:'Mom',        section:'levels',   numeric:true,format:'gradient',min:-100,max:100},
       {key:'range_pos_20d',label:'20d%',       section:'levels',   numeric:true,format:'pct100',sectionEnd:true},
-      {key:'rotation_5d',  label:'RS.5d',      section:'velocity', numeric:true,format:'gradient',min:-100,max:100},
-      {key:'t_roc_5d',     label:'T.5d',       section:'velocity', numeric:true,format:'gradient',min:-30,max:30},
-      {key:'m_roc_5d',     label:'M.5d',       section:'velocity', numeric:true,format:'gradient',min:-30,max:30,sectionEnd:true},
+      {key:'t_roc_13d',    label:'T.13d',      section:'roc',      numeric:true,format:'gradient',min:-100,max:100},
+      {key:'m_roc_10d',    label:'M.10d',      section:'roc',      numeric:true,format:'gradient',min:-100,max:100},
+      {key:'m_roc_5d',     label:'M.5d',       section:'roc',      numeric:true,format:'gradient',min:-100,max:100,sectionEnd:true},
       {key:'extreme',      label:'Ext',        section:'flags',    sortType:'ext',sectionEnd:true},
       {key:'perf_1d',      label:'1d%',        section:'price',    numeric:true,format:'gradient',min:-5,max:5},
       {key:'perf_5d',      label:'5d%',        section:'price',    numeric:true,format:'gradient',min:-10,max:10},
@@ -443,28 +445,20 @@
       if(!groups.includes(current)){groupFilter='';sel.value='';}
     }
 
-    // ── FIVE-TIER RANK ──────────────────────────────────────────────────────
-    // Above trend>75: state matters — proven by backtest
-    //   Tier 1: BULL ACCEL + trend>75            — 100%  win, 6.76% avg
-    //   Tier 2: BULL ESTAB + trend>75 + M.5d>0   — 100%  win, 4.90% avg
-    //   Tier 3: BULL ESTAB + trend>75 + M.5d<=0  — 97.8% win, 3.64% avg
-    // Below trend<=75: state is noise — one combined group sorted by trend
-    //   Tier 4: any bull state + trend<=75 + M.5d>0  — watchlist (yellow)
-    //   Tier 5: any bull state + trend<=75 + M.5d<=0 — exit zone (red)
-    // Tier 6+: BULL FADING, EARLY RECV, BEAR
-    // Sort: tier asc → trend desc → RS.5d desc
+    // TIER SYSTEM — empirically grounded from backtest
+    // Tier 1: BULL ACCEL + trend>75
+    // Tier 2: BULL ESTAB + trend>75 + m_roc_10d>0 + t_roc_13d>0  (6.79% avg fwd)
+    // Tier 3: BULL ESTAB + trend>75 + m_roc_10d>0 + t_roc_13d<=0 (5.97% avg fwd)
+    // Tier 4: bull state + trend<=75 + m_roc_10d>0
+    // Tier 5: bull state + m_roc_10d<=0
+    // Tier 9: BULL FADING, EARLY RECV, BEAR states
     function getRankTier(r){return parseInt(r.tier)||9;}
 
-    // Tier border colours: green=enter, yellow=watch, red=exit
     const TIER_COLORS={1:'#4ade80',2:'#22c55e',3:'#16a34a',4:'#a3e635',5:'#f87171'};
 
-    // Sort: Tier asc → Trend desc → RS.5d desc
-    // Tier = quality gate (state + trend>75 + M.5d direction)
-    // Trend = strongest confirmed move within tier
-    // RS.5d = fastest current velocity as final tiebreaker
-    let sortKey='__tier__',sortDir='asc',sortKey2='trend',sortDir2='desc',sortKey3='rotation_5d',sortDir3='desc',sortClickCount=0;
+    let sortKey='__tier__',sortDir='asc',sortKey2='trend',sortDir2='desc',sortKey3='m_roc_10d',sortDir3='desc',sortClickCount=0;
 
-    function resetSort(){sortKey='__tier__';sortDir='asc';sortKey2='trend';sortDir2='desc';sortKey3='rotation_5d';sortDir3='desc';sortClickCount=0;}
+    function resetSort(){sortKey='__tier__';sortDir='asc';sortKey2='trend';sortDir2='desc';sortKey3='m_roc_10d';sortDir3='desc';sortClickCount=0;}
 
     function buildCross(r){
       const crosses=[];
@@ -578,7 +572,7 @@
             sortDir=(key==='dir_signal'||key==='state')?'asc':'desc';
             sortKey2=key==='__tier__'?'trend':null;
             sortDir2='desc';
-            sortKey3=key==='__tier__'?'rotation_5d':null;sortDir3='desc';
+            sortKey3=key==='__tier__'?'m_roc_10d':null;sortDir3='desc';
             sortClickCount=1;
           }
           renderTable();
@@ -837,7 +831,6 @@
     function rrArrow(dir){if(dir==='up')return'<span class="rr-arrow rr-arrow-up">▲</span>';if(dir==='down')return'<span class="rr-arrow rr-arrow-down">▼</span>';return'';}
     function rrTrendColor(t){if(!t)return'#888';const u=t.toUpperCase();if(u==='BULLISH')return'#4ade80';if(u==='BEARISH')return'#f87171';return'#888';}
     function rrMakeBar(rangePct){if(rangePct===null||rangePct===undefined)return'<div style="display:flex;align-items:center;gap:4px;"><div style="width:50px;height:8px;background:#222;border-radius:2px;"></div><span style="color:#555;font-size:10px;">-</span></div>';const pct=parseFloat(rangePct);let barColor,labelText,labelColor;if(pct>100){barColor='#f87171';labelText='OVER';labelColor='#f87171';}else if(pct<0){barColor='#4ade80';labelText='UNDER';labelColor='#4ade80';}else if(pct<=25){barColor='#4ade80';labelText=Math.round(pct)+'%';labelColor='#999';}else if(pct<=75){barColor='#666';labelText=Math.round(pct)+'%';labelColor='#999';}else{barColor='#f87171';labelText=Math.round(pct)+'%';labelColor='#999';}const clamped=Math.max(0,Math.min(100,pct));const bold=pct>100||pct<0?'600':'400';return`<div style="display:flex;align-items:center;gap:4px;"><div style="position:relative;width:50px;height:8px;background:#222;border-radius:2px;"><div style="position:absolute;left:0;top:0;height:100%;width:${clamped}%;background:${barColor};border-radius:2px;"></div></div><span style="color:${labelColor};font-size:10px;font-weight:${bold};">${labelText}</span></div>`;}
-    // Category ordering for risk ranges display
     const RR_CAT_ORDER=['RATES','CREDIT','EQUITY INDEX','US SECTORS','VOLATILITY','CURRENCIES','COMMODITIES','GOLD','PRECIOUS METALS','CRYPTO','US STOCKS','BONDS','OTHER'];
     function renderRiskRanges(data){if(!data.length)return;const activeData=data.filter(d=>!d.out_bucket);document.getElementById('rr-date').textContent=activeData[0]?.signal_date||'-';const categories={};activeData.forEach(d=>{const cat=d.category||'OTHER';if(!categories[cat])categories[cat]=[];categories[cat].push(d);});let html='';const orderedCats=[...RR_CAT_ORDER.filter(c=>categories[c]),...Object.keys(categories).filter(c=>!RR_CAT_ORDER.includes(c))];for(const category of orderedCats){const items=categories[category];html+=`<tr><td colspan="12" class="rr-cat">${category}</td></tr>`;items.forEach(d=>{const tc=rrTrendColor(d.trend);const trendDisplay=(d.trend||'').toUpperCase();const live=d.live_price!==null?parseFloat(d.live_price):null;const chg=d.intraday_chg_pct!==null?parseFloat(d.intraday_chg_pct):null;let rangeTag='';if(d.range_change==='tightening')rangeTag='<span class="rr-range-tag rr-tightening">tight</span>';else if(d.range_change==='widening')rangeTag='<span class="rr-range-tag rr-widening">wide</span>';const descName=d.description||d.name||'';html+='<tr>'+`<td><strong>${d.symbol}</strong>${rangeTag}</td>`+`<td style="color:#888;font-size:11px;">${descName}</td>`+`<td><span style="color:${tc};font-weight:600;">${trendDisplay}</span></td>`+`<td class="num" style="color:#4ade80;">${rrFormatPrice(d.buy_level)}${rrArrow(d.buy_arrow)}</td>`+`<td class="num" style="color:#f87171;">${rrFormatPrice(d.sell_level)}${rrArrow(d.sell_arrow)}</td>`+`<td class="num">${rrFormatPrice(d.prev_close)}</td>`+`<td colspan="2">${rrMakeBar(d.range_pct)}</td>`+`<td class="num rr-divider" style="font-weight:600;">${live!==null?rrFormatPrice(live):'-'}</td>`+`<td colspan="2">${rrMakeBar(d.live_range_pct)}</td>`+`<td class="num" style="color:${chg!==null?(chg>=0?'#4ade80':'#f87171'):'#555'}">${chg!==null?(chg>=0?'+':'')+chg.toFixed(2)+'%':'-'}</td>`+'</tr>';})}document.getElementById('rr-body').innerHTML=html;}
     function renderTrendChanges(data){const body=document.getElementById('rr-changes-body');if(!data||!data.length){body.innerHTML='<tr><td colspan="5" style="color:#666">No trend changes</td></tr>';return;}body.innerHTML=data.map(c=>{const fc=rrTrendColor(c.trend_changed_from),tc=rrTrendColor(c.trend);const note=c.out_bucket?'<span style="color:#555;font-size:10px;">OutBucket</span>':'';return`<tr><td><strong>${c.symbol}</strong></td><td style="color:${fc}">${(c.trend_changed_from||'NEW').toUpperCase()}</td><td style="color:#666">→</td><td style="color:${tc};font-weight:600;">${(c.trend||'').toUpperCase()}</td><td>${note}</td></tr>`;}).join('');}
@@ -859,48 +852,48 @@
         const latest=d.reduce((mx,r)=>{const t=new Date(r.bar_timestamp);return t>mx?t:mx},new Date(0));
         document.getElementById('alerts-ts').textContent='Last updated: '+latest.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+latest.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
         const STATE_ORD={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6};
-        const grpFmt=g=>formatGroup(g);
         const uk=d.filter(r=>r.watchlist==='UK ETFS'||r.watchlist==='BOTH');
         const reAccel=uk.filter(r=>r.state_changed&&r.state_name==='BULL ACCEL')
-          .sort((a,b)=>(parseFloat(b.rotation_5d)||0)-(parseFloat(a.rotation_5d)||0));
+          .sort((a,b)=>(parseFloat(b.m_roc_10d)||0)-(parseFloat(a.m_roc_10d)||0));
         const establishing=uk.filter(r=>r.state_changed&&r.state_name==='BULL ESTAB'&&(r.prev_state_name?r.prev_state_name!=='BULL ACCEL'&&r.prev_state_name!=='BULL ESTAB':parseInt(r.prev_state)>2))
-          .sort((a,b)=>(parseFloat(b.rotation_5d)||0)-(parseFloat(a.rotation_5d)||0));
+          .sort((a,b)=>(parseFloat(b.m_roc_10d)||0)-(parseFloat(a.m_roc_10d)||0));
         const settling=uk.filter(r=>r.state_changed&&r.state_name==='BULL ESTAB'&&(r.prev_state_name==='BULL ACCEL'||parseInt(r.prev_state)===1))
-          .sort((a,b)=>(parseFloat(b.rotation_5d)||0)-(parseFloat(a.rotation_5d)||0));
+          .sort((a,b)=>(parseFloat(b.m_roc_10d)||0)-(parseFloat(a.m_roc_10d)||0));
         const exits=uk.filter(r=>r.state_changed&&(r.state_name==='BULL FADING'||r.state_name==='BEAR DECEL'||r.state_name==='BEAR ACCEL'))
-          .sort((a,b)=>(STATE_ORD[b.state_name]-STATE_ORD[a.state_name])||((parseFloat(a.rotation_5d)||0)-(parseFloat(b.rotation_5d)||0)));
+          .sort((a,b)=>(STATE_ORD[b.state_name]-STATE_ORD[a.state_name])||((parseFloat(a.m_roc_10d)||0)-(parseFloat(b.m_roc_10d)||0)));
         const watchlist=uk.filter(r=>r.state_name==='EARLY RECV'&&parseFloat(r.m_roc_5d)>5)
           .sort((a,b)=>(parseFloat(b.m_roc_5d)||0)-(parseFloat(a.m_roc_5d)||0));
+
         function getPrevStateName(r){
           if(r.prev_state_name)return r.prev_state_name;
           if(r.prev_state)return Object.keys(STATE_ORD).find(k=>STATE_ORD[k]===parseInt(r.prev_state))||'?';
           return'?';
         }
-        // Alert-specific columns definition (matches universe minus size cols, plus PREV)
+
         const ALERT_COLS=[
-          {key:'group_name',  label:'GRP',       section:'state'},
-          {key:'_prev',       label:'PREV',       section:'state'},
-          {key:'state_name',  label:'STATE',      section:'state',  sectionEnd:true},
-          {key:'dir_signal',  label:'SIGNAL.10D', section:'momentum'},
-          {key:'arrow_trail', label:'TRAIL',      section:'momentum',sectionEnd:true},
-          {key:'trend',       label:'TRND',       section:'levels',  numeric:true,format:'gradient',min:-100,max:100},
-          {key:'mom',         label:'MOM',        section:'levels',  numeric:true,format:'gradient',min:-100,max:100},
-          {key:'range_pos_20d',label:'20D%',      section:'levels',  numeric:true,format:'pct100',  sectionEnd:true},
-          {key:'rotation_5d', label:'RS.5D',      section:'velocity',numeric:true,format:'gradient',min:-100,max:100},
-          {key:'t_roc_5d',    label:'T.5D',       section:'velocity',numeric:true,format:'gradient',min:-30,max:30},
-          {key:'m_roc_5d',    label:'M.5D',       section:'velocity',numeric:true,format:'gradient',min:-30,max:30,sectionEnd:true},
-          {key:'extreme',     label:'EXT',        section:'flags',   sectionEnd:true},
-          {key:'perf_1d',     label:'1D%',        section:'price',   numeric:true,format:'gradient',min:-5,max:5},
-          {key:'perf_5d',     label:'5D%',        section:'price',   numeric:true,format:'gradient',min:-10,max:10},
-          {key:'perf_1m',     label:'1M%',        section:'price',   numeric:true,format:'gradient',min:-20,max:20,sectionEnd:true},
+          {key:'group_name',   label:'GRP',        section:'state'},
+          {key:'_prev',        label:'PREV',        section:'state'},
+          {key:'state_name',   label:'STATE',       section:'state',  sectionEnd:true},
+          {key:'dir_signal',   label:'SIGNAL.10D',  section:'momentum'},
+          {key:'arrow_trail',  label:'TRAIL',       section:'momentum',sectionEnd:true},
+          {key:'trend',        label:'TRND',        section:'levels',  numeric:true,format:'gradient',min:-100,max:100},
+          {key:'mom',          label:'MOM',         section:'levels',  numeric:true,format:'gradient',min:-100,max:100},
+          {key:'range_pos_20d',label:'20D%',        section:'levels',  numeric:true,format:'pct100',  sectionEnd:true},
+          {key:'t_roc_13d',    label:'T.13D',       section:'roc',     numeric:true,format:'gradient',min:-100,max:100},
+          {key:'m_roc_10d',    label:'M.10D',       section:'roc',     numeric:true,format:'gradient',min:-100,max:100},
+          {key:'m_roc_5d',     label:'M.5D',        section:'roc',     numeric:true,format:'gradient',min:-100,max:100,sectionEnd:true},
+          {key:'extreme',      label:'EXT',         section:'flags',   sectionEnd:true},
+          {key:'perf_1d',      label:'1D%',         section:'price',   numeric:true,format:'gradient',min:-5,max:5},
+          {key:'perf_5d',      label:'5D%',         section:'price',   numeric:true,format:'gradient',min:-10,max:10},
+          {key:'perf_1m',      label:'1M%',         section:'price',   numeric:true,format:'gradient',min:-20,max:20},
         ];
+
         function alertRow(r,prevName,isHeld,isExit){
           r._crosses=buildCross(r);
           const symStyle=isHeld?'border-left:4px solid #fff;padding-left:8px;':'';
           const rowStyle=isExit&&isHeld?'background:rgba(248,113,113,0.05)':'';
           const tier=getRankTier(r);
           const tierColor=TIER_COLORS[tier]||'#555';
-          // inject prev name for rendering
           r._prev=prevName||'';
           const cells=ALERT_COLS.map(col=>{
             const bg=getBgColor(r[col.key],col);
