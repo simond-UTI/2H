@@ -268,7 +268,7 @@
             <th class="section-header" colspan="3">STATE</th>
             <th class="section-header" colspan="2">DIRECTION</th>
             <th class="section-header" colspan="3">LEVELS</th>
-            <th class="section-header" colspan="2">ENERGY</th>
+            <th class="section-header" colspan="3">ENERGY</th>
             <th class="section-header" colspan="1">FLAGS</th>
             <th class="section-header" colspan="3">PRICE %</th>
           </tr>
@@ -283,14 +283,15 @@
             <th class="num">MOM</th>
             <th class="num section-end">20D%</th>
             <th class="num">T.13D</th>
-            <th class="num section-end">M.10D</th>
+            <th class="num">M.10D</th>
+            <th class="num section-end">M.5D</th>
             <th class="num section-end">EXT</th>
             <th class="num">1D%</th>
             <th class="num">5D%</th>
             <th class="num">1M%</th>
           </tr>
         </thead>
-        <tbody id="alerts-body"><tr><td colspan="15" class="loading">Loading...</td></tr></tbody>
+        <tbody id="alerts-body"><tr><td colspan="16" class="loading">Loading...</td></tr></tbody>
       </table>
     </div>
     <div style="padding:8px 16px;font-size:11px;color:#555;" id="alerts-ts"></div>
@@ -360,13 +361,13 @@
 
     let allData=[],positionSymbols=new Set(),allocationData={},activeFilters=new Set(['POS']),groupFilter='',stateFilter='',crossFilter='',signalFilter='',searchTerm='',dataSource='intraday';
 
-    // velocity section cols = 2 (T.13d + M.10d)
+    // velocity section cols = 3 (T.13d + M.10d + M.5d)
     const sectionsBase=[
       {id:'info',    label:'',          cols:1},
       {id:'state',   label:'STATE',     cols:3},
       {id:'momentum',label:'DIRECTION', cols:2},
       {id:'levels',  label:'LEVELS',    cols:3},
-      {id:'velocity',label:'ENERGY',    cols:2},
+      {id:'velocity',label:'ENERGY',    cols:3},
       {id:'flags',   label:'FLAGS',     cols:1},
       {id:'price',   label:'PRICE %',   cols:3},
       {id:'usd',     label:'USD $',     cols:2}
@@ -377,7 +378,7 @@
       {id:'state',   label:'STATE',     cols:3},
       {id:'momentum',label:'DIRECTION', cols:2},
       {id:'levels',  label:'LEVELS',    cols:3},
-      {id:'velocity',label:'ENERGY',    cols:2},
+      {id:'velocity',label:'ENERGY',    cols:3},
       {id:'flags',   label:'FLAGS',     cols:1},
       {id:'price',   label:'PRICE %',   cols:3},
       {id:'usd',     label:'USD $',     cols:2}
@@ -395,7 +396,8 @@
       {key:'mom',          label:'Mom',        section:'levels',   numeric:true,format:'gradient',min:-100,max:100},
       {key:'range_pos_20d',label:'20d%',       section:'levels',   numeric:true,format:'pct100',sectionEnd:true},
       {key:'t_roc_13d',    label:'T.13d',      section:'velocity', numeric:true,format:'gradient',min:-30,max:30},
-      {key:'m_roc_10d',    label:'M.10d',      section:'velocity', numeric:true,format:'gradient',min:-30,max:30,sectionEnd:true},
+      {key:'m_roc_10d',    label:'M.10d',      section:'velocity', numeric:true,format:'gradient',min:-30,max:30},
+      {key:'m_roc_5d',     label:'M.5d',       section:'velocity', numeric:true,format:'gradient',min:-30,max:30,sectionEnd:true},
       {key:'extreme',      label:'Ext',        section:'flags',    sortType:'ext',sectionEnd:true},
       {key:'perf_1d',      label:'1d%',        section:'price',    numeric:true,format:'gradient',min:-5,max:5},
       {key:'perf_5d',      label:'5d%',        section:'price',    numeric:true,format:'gradient',min:-10,max:10},
@@ -419,7 +421,8 @@
       {key:'mom',          label:'Mom',        section:'levels',   numeric:true,format:'gradient',min:-100,max:100},
       {key:'range_pos_20d',label:'20d%',       section:'levels',   numeric:true,format:'pct100',sectionEnd:true},
       {key:'t_roc_13d',    label:'T.13d',      section:'velocity', numeric:true,format:'gradient',min:-30,max:30},
-      {key:'m_roc_10d',    label:'M.10d',      section:'velocity', numeric:true,format:'gradient',min:-30,max:30,sectionEnd:true},
+      {key:'m_roc_10d',    label:'M.10d',      section:'velocity', numeric:true,format:'gradient',min:-30,max:30},
+      {key:'m_roc_5d',     label:'M.5d',       section:'velocity', numeric:true,format:'gradient',min:-30,max:30,sectionEnd:true},
       {key:'extreme',      label:'Ext',        section:'flags',    sortType:'ext',sectionEnd:true},
       {key:'perf_1d',      label:'1d%',        section:'price',    numeric:true,format:'gradient',min:-5,max:5},
       {key:'perf_5d',      label:'5d%',        section:'price',    numeric:true,format:'gradient',min:-10,max:10},
@@ -871,7 +874,8 @@
           {key:'mom',         label:'MOM',        section:'levels',  numeric:true,format:'gradient',min:-100,max:100},
           {key:'range_pos_20d',label:'20D%',      section:'levels',  numeric:true,format:'pct100',  sectionEnd:true},
           {key:'t_roc_13d',   label:'T.13D',      section:'velocity',numeric:true,format:'gradient',min:-30,max:30},
-          {key:'m_roc_10d',   label:'M.10D',      section:'velocity',numeric:true,format:'gradient',min:-30,max:30,sectionEnd:true},
+          {key:'m_roc_10d',   label:'M.10D',      section:'velocity',numeric:true,format:'gradient',min:-30,max:30},
+          {key:'m_roc_5d',    label:'M.5D',       section:'velocity',numeric:true,format:'gradient',min:-30,max:30,sectionEnd:true},
           {key:'extreme',     label:'EXT',        section:'flags',   sectionEnd:true},
           {key:'perf_1d',     label:'1D%',        section:'price',   numeric:true,format:'gradient',min:-5,max:5},
           {key:'perf_5d',     label:'5D%',        section:'price',   numeric:true,format:'gradient',min:-10,max:10},
@@ -900,8 +904,8 @@
           }).join('');
           return`<tr style="${rowStyle}"><td class="freeze-col col-symbol" style="${symStyle}"><strong>${r.symbol}</strong></td>${cells}</tr>`;
         }
-        function dividerRow(label,color){return`<tr><td colspan="15" style="background:#111;color:${color};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:6px 12px;">${label}</td></tr>`;}
-        function emptyRow(msg){return`<tr><td colspan="15" style="color:#444;padding:8px 12px;font-size:11px;">${msg}</td></tr>`;}
+        function dividerRow(label,color){return`<tr><td colspan="16" style="background:#111;color:${color};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:6px 12px;">${label}</td></tr>`;}
+        function emptyRow(msg){return`<tr><td colspan="16" style="color:#444;padding:8px 12px;font-size:11px;">${msg}</td></tr>`;}
         let html='';
         html+=dividerRow('⚡ Re-Accelerating — Into Bull Accel','#4ade80');
         html+=reAccel.length?reAccel.map(r=>alertRow(r,getPrevStateName(r),positionSymbols.has(r.symbol),false)).join(''):emptyRow('No re-acceleration today');
