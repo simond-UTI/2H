@@ -107,6 +107,10 @@
     .ext { font-size: 9px; padding: 2px 5px; border-radius: 3px; font-weight: 600; }
     .ext-high { background: rgba(239, 68, 68, 0.25); color: #f87171; }
     .ext-low { background: rgba(34, 197, 94, 0.25); color: #4ade80; }
+    .rank-move { font-size: 10px; font-weight: 600; }
+    .rank-up { color: #4ade80; }
+    .rank-dn { color: #f87171; }
+    .rank-flat { color: #555; }
     .size-pct { color: #60a5fa; }
     .size-max { color: #888; }
     .size-over { color: #f87171; font-weight: 600; }
@@ -265,7 +269,7 @@
         <thead>
           <tr>
             <th class="section-header freeze-col col-symbol"></th>
-            <th class="section-header" colspan="3">STATE</th>
+            <th class="section-header" colspan="4">STATE</th>
             <th class="section-header" colspan="2">MOMENTUM</th>
             <th class="section-header" colspan="3">LEVELS</th>
             <th class="section-header" colspan="3">ROC</th>
@@ -276,6 +280,7 @@
             <th class="col-symbol freeze-col">SYM</th>
             <th>GRP</th>
             <th>PREV</th>
+            <th>MV</th>
             <th class="section-end">STATE</th>
             <th>SIGNAL.10D</th>
             <th class="section-end">TRAIL <span style="font-size:9px;color:#444;font-weight:400;text-transform:none;">old→new</span></th>
@@ -291,7 +296,7 @@
             <th class="num">1M%</th>
           </tr>
         </thead>
-        <tbody id="alerts-body"><tr><td colspan="17" class="loading">Loading...</td></tr></tbody>
+        <tbody id="alerts-body"><tr><td colspan="18" class="loading">Loading...</td></tr></tbody>
       </table>
     </div>
     <div style="padding:8px 16px;font-size:11px;color:#555;" id="alerts-ts"></div>
@@ -363,7 +368,7 @@
 
     const sectionsBase=[
       {id:'info',    label:'',          cols:1},
-      {id:'state',   label:'STATE',     cols:3},
+      {id:'state',   label:'STATE',     cols:4},
       {id:'momentum',label:'MOMENTUM',  cols:2},
       {id:'levels',  label:'LEVELS',    cols:3},
       {id:'roc',     label:'ROC',       cols:3},
@@ -374,7 +379,7 @@
     const sectionsWithSize=[
       {id:'info',    label:'',          cols:1},
       {id:'size',    label:'SIZE',      cols:4},
-      {id:'state',   label:'STATE',     cols:3},
+      {id:'state',   label:'STATE',     cols:4},
       {id:'momentum',label:'MOMENTUM',  cols:2},
       {id:'levels',  label:'LEVELS',    cols:3},
       {id:'roc',     label:'ROC',       cols:3},
@@ -383,12 +388,11 @@
       {id:'usd',     label:'USD $',     cols:2}
     ];
 
-    // ROC columns: T.13d (trend velocity 13d), M.10d (mom velocity 10d), M.5d (mom velocity 5d)
-    // These are the tier gate signals — what you see is what drives the tier
     const columnsBase=[
       {key:'symbol',       label:'Sym',        section:'info',     freeze:true,freezeClass:'col-symbol',sectionEnd:true},
       {key:'group_name',   label:'Grp',        section:'state'},
       {key:'state_name',   label:'State',      section:'state'},
+      {key:'rank_move',    label:'Mv',         section:'state',    format:'rankmove'},
       {key:'cross',        label:'Cross',      section:'state',    sectionEnd:true},
       {key:'dir_signal',   label:'Signal.10d', section:'momentum'},
       {key:'arrow_trail',  label:'Trail <span style="font-size:9px;color:#444;font-weight:400;text-transform:none;">old→new</span>', section:'momentum', sectionEnd:true},
@@ -414,6 +418,7 @@
       {key:'value',        label:'Value',      section:'size',     numeric:true,sectionEnd:true},
       {key:'group_name',   label:'Grp',        section:'state'},
       {key:'state_name',   label:'State',      section:'state'},
+      {key:'rank_move',    label:'Mv',         section:'state',    format:'rankmove'},
       {key:'cross',        label:'Cross',      section:'state',    sectionEnd:true},
       {key:'dir_signal',   label:'Signal.10d', section:'momentum'},
       {key:'arrow_trail',  label:'Trail <span style="font-size:9px;color:#444;font-weight:400;text-transform:none;">old→new</span>', section:'momentum', sectionEnd:true},
@@ -445,20 +450,14 @@
       if(!groups.includes(current)){groupFilter='';sel.value='';}
     }
 
-    // TIER SYSTEM — empirically grounded from backtest
-    // Tier 1: BULL ACCEL + trend>75
-    // Tier 2: BULL ESTAB + trend>75 + m_roc_10d>0 + t_roc_13d>0  (6.79% avg fwd)
-    // Tier 3: BULL ESTAB + trend>75 + m_roc_10d>0 + t_roc_13d<=0 (5.97% avg fwd)
-    // Tier 4: bull state + trend<=75 + m_roc_10d>0
-    // Tier 5: bull state + m_roc_10d<=0
-    // Tier 9: BULL FADING, EARLY RECV, BEAR states
+    // tier = state number from view — left-border colour only, not ranking
+    // 1=BULL ACCEL, 2=BULL ESTAB, 3=BULL FADING, 4=EARLY RECV, 5=BEAR DECEL, 6=BEAR ACCEL
+    const TIER_COLORS={1:'#4ade80',2:'#22c55e',3:'#fb923c',4:'#60a5fa',5:'#f87171',6:'#ef4444'};
     function getRankTier(r){return parseInt(r.tier)||9;}
 
-    const TIER_COLORS={1:'#4ade80',2:'#22c55e',3:'#16a34a',4:'#a3e635',5:'#f87171'};
-
-    let sortKey='__tier__',sortDir='asc',sortKey2='trend',sortDir2='desc',sortKey3='m_roc_10d',sortDir3='desc',sortClickCount=0;
-
-    function resetSort(){sortKey='__tier__';sortDir='asc';sortKey2='trend';sortDir2='desc';sortKey3='m_roc_10d';sortDir3='desc';sortClickCount=0;}
+    // Default sort: trend desc — empirically proven best ranking signal
+    let sortKey='trend',sortDir='desc',sortKey2=null,sortDir2='desc',sortKey3=null,sortDir3='desc',sortClickCount=0;
+    function resetSort(){sortKey='trend';sortDir='desc';sortKey2=null;sortKey3=null;sortClickCount=0;}
 
     function buildCross(r){
       const crosses=[];
@@ -480,13 +479,11 @@
         return`<span class="${cls}">${prefix}${c.e}</span>`;
       }).join(' ');
     }
-
     function formatDirSignal(v){
       if(!v)return'-';
       const cls={'RISING':'dir-rising','RECOVERING':'dir-recovering','NEUTRAL':'dir-neutral','WEAKENING':'dir-weakening','FALLING':'dir-falling'}[v]||'dir-neutral';
       return`<span class="dir-pill ${cls}">${v}</span>`;
     }
-
     function formatTrail(v){
       if(!v)return'-';
       const colourMap={'↗':'#4ade80','↑':'#4ade80','→':'#86efac','↘':'#fbbf24','•':'#555','↖':'#fb923c','↓':'#fb923c','←':'#f87171','↙':'#f87171'};
@@ -494,7 +491,13 @@
       const coloured=chars.map(c=>{const col=colourMap[c]||'#888';return`<span style="color:${col}">${c}</span>`;}).join('');
       return`<span class="arrow-trail">${coloured}</span>`;
     }
-
+    function formatRankMove(v){
+      if(v===null||v===undefined||v==='')return'<span class="rank-move rank-flat">–</span>';
+      const n=parseInt(v);
+      if(isNaN(n)||n===0)return'<span class="rank-move rank-flat">–</span>';
+      if(n>0)return`<span class="rank-move rank-up">▲${n}</span>`;
+      return`<span class="rank-move rank-dn">▼${Math.abs(n)}</span>`;
+    }
     function getBgColor(value,col){
       if(value===null||value===undefined||value==='')return'';
       const num=parseFloat(value);if(isNaN(num))return'';
@@ -509,8 +512,7 @@
       if(format==='usdcorr'){if(num>=0.5)return'rgba(30,160,70,0.5)';if(num>=0.3)return'rgba(30,160,70,0.25)';if(num<=-0.5)return'rgba(200,40,40,0.5)';if(num<=-0.3)return'rgba(200,40,40,0.25)';return'';}
       return'';
     }
-
-    function formatState(s,changed,crosses,prevStateName){if(!s)return'';const stateNum={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6};const n=stateNum[s]||0;let badge='';if(changed&&prevStateName){const prevN=stateNum[prevStateName]||0;const improved=n<prevN;const bg=improved?'#4ade80':'#f87171';badge=`<span class="state-new" style="background:${bg};color:#000;">NEW</span>`;}else if(changed){badge=`<span class="state-new">NEW</span>`;}return`<span class="state-badge state-${n}">${s}</span>${badge}`;}
+    function formatState(s,changed,prevStateName){if(!s)return'';const stateNum={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6};const n=stateNum[s]||0;let badge='';if(changed&&prevStateName){const prevN=stateNum[prevStateName]||0;const improved=n<prevN;const bg=improved?'#4ade80':'#f87171';badge=`<span class="state-new" style="background:${bg};color:#000;">NEW</span>`;}else if(changed){badge=`<span class="state-new">NEW</span>`;}return`<span class="state-badge state-${n}">${s}</span>${badge}`;}
     function formatGroup(g){if(!g)return'';const map={'PRECIOUS METALS':'PMs','COMMODITIES':'Commod','COUNTRIES':'Country','US SECTORS':'US Sect','THEMATIC TECH':'Tech','MINERS':'Miners','US INDICES':'US Idx','GLOBAL FACTORS':'Factors','ENERGY':'Energy','CRYPTO RELATED':'Crypto','CRYPTO':'Crypto','VOLATILITY':'Vol','EMERGING MARKETS':'EM','FIXED INCOME':'Fixed Inc','UK EQUITY':'UK Eq','BONDS':'Bonds','GLOBAL SECTORS':'Gl Sect','GOLD':'Gold','GLOBAL BROAD':'Global','CURRENCIES':'FX'};return`<span class="grp">${map[g]||g}</span>`;}
     function formatExt(v){if(!v)return'';const cls=v==='HIGH'?'ext-high':'ext-low';return`<span class="ext ${cls}">${v}</span>`;}
     function formatNum(v){if(v===null||v===undefined||v==='')return'-';const num=parseFloat(v);if(isNaN(num))return v;return num%1===0?num:num.toFixed(1);}
@@ -521,7 +523,8 @@
       const v=row[col.key];
       if(col.key==='dir_signal')return formatDirSignal(v);
       if(col.key==='arrow_trail')return formatTrail(v);
-      if(col.key==='state_name'){const stateNames={1:'BULL ACCEL',2:'BULL ESTAB',3:'BULL FADING',4:'EARLY RECV',5:'BEAR DECEL',6:'BEAR ACCEL'};const prevName=row.prev_state_name||stateNames[parseInt(row.prev_state)]||null;return formatState(v,row.state_changed,row._crosses||[],prevName);}
+      if(col.key==='rank_move')return formatRankMove(v);
+      if(col.key==='state_name'){const stateNames={1:'BULL ACCEL',2:'BULL ESTAB',3:'BULL FADING',4:'EARLY RECV',5:'BEAR DECEL',6:'BEAR ACCEL'};const prevName=stateNames[parseInt(row.prev_state)]||null;return formatState(v,row.state_changed,prevName);}
       if(col.key==='cross')return`<span class="cross-cell">${formatCrossCell(row._crosses||[])}</span>`;
       if(col.key==='group_name')return formatGroup(v);
       if(col.key==='extreme')return formatExt(v);
@@ -535,7 +538,6 @@
     }
 
     function getSortValue(row,key,col){
-      if(key==='__tier__')return getRankTier(row);
       if(key==='state'){const order={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6};return order[row.state_name]??9;}
       if(key==='dir_signal'){const order={RISING:1,RECOVERING:2,NEUTRAL:3,WEAKENING:4,FALLING:5};return order[row.dir_signal]??3;}
       const v=row[key];
@@ -570,9 +572,7 @@
           }else{
             sortKey=key;
             sortDir=(key==='dir_signal'||key==='state')?'asc':'desc';
-            sortKey2=key==='__tier__'?'trend':null;
-            sortDir2='desc';
-            sortKey3=key==='__tier__'?'m_roc_10d':null;sortDir3='desc';
+            sortKey2=null;sortKey3=null;
             sortClickCount=1;
           }
           renderTable();
@@ -854,15 +854,15 @@
         const STATE_ORD={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6};
         const uk=d.filter(r=>r.watchlist==='UK ETFS'||r.watchlist==='BOTH');
         const reAccel=uk.filter(r=>r.state_changed&&r.state_name==='BULL ACCEL')
-          .sort((a,b)=>(parseFloat(b.m_roc_10d)||0)-(parseFloat(a.m_roc_10d)||0));
+          .sort((a,b)=>(parseFloat(b.trend)||0)-(parseFloat(a.trend)||0));
         const establishing=uk.filter(r=>r.state_changed&&r.state_name==='BULL ESTAB'&&(r.prev_state_name?r.prev_state_name!=='BULL ACCEL'&&r.prev_state_name!=='BULL ESTAB':parseInt(r.prev_state)>2))
-          .sort((a,b)=>(parseFloat(b.m_roc_10d)||0)-(parseFloat(a.m_roc_10d)||0));
+          .sort((a,b)=>(parseFloat(b.trend)||0)-(parseFloat(a.trend)||0));
         const settling=uk.filter(r=>r.state_changed&&r.state_name==='BULL ESTAB'&&(r.prev_state_name==='BULL ACCEL'||parseInt(r.prev_state)===1))
-          .sort((a,b)=>(parseFloat(b.m_roc_10d)||0)-(parseFloat(a.m_roc_10d)||0));
+          .sort((a,b)=>(parseFloat(b.trend)||0)-(parseFloat(a.trend)||0));
         const exits=uk.filter(r=>r.state_changed&&(r.state_name==='BULL FADING'||r.state_name==='BEAR DECEL'||r.state_name==='BEAR ACCEL'))
-          .sort((a,b)=>(STATE_ORD[b.state_name]-STATE_ORD[a.state_name])||((parseFloat(a.m_roc_10d)||0)-(parseFloat(b.m_roc_10d)||0)));
+          .sort((a,b)=>(STATE_ORD[b.state_name]-STATE_ORD[a.state_name])||((parseFloat(a.trend)||0)-(parseFloat(b.trend)||0)));
         const watchlist=uk.filter(r=>r.state_name==='EARLY RECV'&&parseFloat(r.m_roc_5d)>5)
-          .sort((a,b)=>(parseFloat(b.m_roc_5d)||0)-(parseFloat(a.m_roc_5d)||0));
+          .sort((a,b)=>(parseFloat(b.trend)||0)-(parseFloat(a.trend)||0));
 
         function getPrevStateName(r){
           if(r.prev_state_name)return r.prev_state_name;
@@ -873,7 +873,8 @@
         const ALERT_COLS=[
           {key:'group_name',   label:'GRP',        section:'state'},
           {key:'_prev',        label:'PREV',        section:'state'},
-          {key:'state_name',   label:'STATE',       section:'state',  sectionEnd:true},
+          {key:'rank_move',    label:'MV',          section:'state',   format:'rankmove'},
+          {key:'state_name',   label:'STATE',       section:'state',   sectionEnd:true},
           {key:'dir_signal',   label:'SIGNAL.10D',  section:'momentum'},
           {key:'arrow_trail',  label:'TRAIL',       section:'momentum',sectionEnd:true},
           {key:'trend',        label:'TRND',        section:'levels',  numeric:true,format:'gradient',min:-100,max:100},
@@ -901,9 +902,10 @@
             const styleStr=bg?`style="background:${bg}"`:'';
             if(col.key==='_prev'){
               const ps=r._prev;
-              const pn=ps?{'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6}[ps]||0:0;
+              const pn=ps?STATE_ORD[ps]||0:0;
               return`<td class="${classes}">${ps?`<span class="state-badge state-${pn}">${ps}</span>`:''}</td>`;
             }
+            if(col.key==='rank_move')return`<td class="${classes}">${formatRankMove(r.rank_move)}</td>`;
             if(col.key==='state_name'){
               return`<td class="${classes}" style="border-left:3px solid ${tierColor};padding-left:6px;">${formatCell(r,col)}</td>`;
             }
@@ -911,8 +913,8 @@
           }).join('');
           return`<tr style="${rowStyle}"><td class="freeze-col col-symbol" style="${symStyle}">${formatCell(r,{key:'symbol'})}</td>${cells}</tr>`;
         }
-        function dividerRow(label,color){return`<tr><td colspan="16" style="background:#111;color:${color};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:6px 12px;">${label}</td></tr>`;}
-        function emptyRow(msg){return`<tr><td colspan="16" style="color:#444;padding:8px 12px;font-size:11px;">${msg}</td></tr>`;}
+        function dividerRow(label,color){return`<tr><td colspan="17" style="background:#111;color:${color};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:6px 12px;">${label}</td></tr>`;}
+        function emptyRow(msg){return`<tr><td colspan="17" style="color:#444;padding:8px 12px;font-size:11px;">${msg}</td></tr>`;}
         let html='';
         html+=dividerRow('⚡ Re-Accelerating — Into Bull Accel','#4ade80');
         html+=reAccel.length?reAccel.map(r=>alertRow(r,getPrevStateName(r),positionSymbols.has(r.symbol),false)).join(''):emptyRow('No re-acceleration today');
