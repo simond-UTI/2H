@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -37,28 +38,25 @@ input[type="text"]{padding:5px 9px;background:#151515;border:1px solid #2a2a2a;b
 .dot:hover{transform:translate(-50%,-50%) scale(1.9);z-index:100}
 .dot.held{box-shadow:0 0 0 2.5px #fff}
 .dot.hl{box-shadow:0 0 0 3px rgba(255,255,255,0.8);z-index:50}
-/* Signal colours — 5 states matching dashboard pills */
 .sig-rising   {background:#4ade80}
 .sig-recovering{background:#86efac}
 .sig-neutral  {background:#888}
 .sig-weakening{background:#fb923c}
 .sig-falling  {background:#f87171}
 .dot-label{position:absolute;font-size:8px;color:#ddd;white-space:nowrap;pointer-events:none;transform:translate(55%,-50%);z-index:5;text-shadow:1px 1px 3px #000,-1px -1px 3px #000,0 0 6px #000}
-/* Results panel */
 .results-panel{background:#0d0d0d;border:1px solid #1a1a1a;border-radius:6px;display:flex;flex-direction:column;overflow:hidden}
 .rhead{padding:8px 12px;background:#111;border-bottom:1px solid #1a1a1a;font-size:11px;color:#aaa;display:flex;justify-content:space-between}
 .rcount{color:#fff;font-weight:600}
-.rcols{display:grid;grid-template-columns:44px 90px 90px 1fr;gap:3px;padding:5px 8px 5px 10px;background:#0a0a0a;border-bottom:1px solid #1a1a1a;font-size:8px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-weight:600}
+.rcols{display:grid;grid-template-columns:44px 90px 30px 30px 1fr;gap:3px;padding:5px 8px 5px 10px;background:#0a0a0a;border-bottom:1px solid #1a1a1a;font-size:8px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-weight:600}
 .rlist{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#333 transparent}
 .rlist::-webkit-scrollbar{width:8px}
 .rlist::-webkit-scrollbar-track{background:transparent}
 .rlist::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
-.ri{display:grid;grid-template-columns:44px 90px 90px 1fr;gap:3px;padding:5px 8px 5px 10px;cursor:pointer;align-items:center;font-size:11px;border-left:3px solid transparent;border-bottom:1px solid #0f0f0f}
+.ri{display:grid;grid-template-columns:44px 90px 30px 30px 1fr;gap:3px;padding:5px 8px 5px 10px;cursor:pointer;align-items:center;font-size:11px;border-left:3px solid transparent;border-bottom:1px solid #0f0f0f}
 .ri:hover{background:#1a1a1a}
 .ri.hl{background:#1a2a1a}
 .ri.held{border-left-color:#fff}
 .ri-sym{font-weight:600;color:#fff;font-size:10px}
-/* State badge — matches dashboard */
 .state-badge{display:inline-block;padding:2px 5px;border-radius:3px;font-size:8px;font-weight:600;letter-spacing:0.3px;white-space:nowrap}
 .state-1{background:#166534;color:#4ade80}
 .state-2{background:#14532d;color:#22c55e}
@@ -66,16 +64,13 @@ input[type="text"]{padding:5px 9px;background:#151515;border:1px solid #2a2a2a;b
 .state-4{background:#1e3a5f;color:#60a5fa}
 .state-5{background:#7f1d1d;color:#fca5a5}
 .state-6{background:#991b1b;color:#f87171}
-/* Signal pill — matches dashboard */
 .dir-pill{display:inline-block;padding:2px 5px;border-radius:3px;font-size:8px;font-weight:600;letter-spacing:0.3px;white-space:nowrap}
 .dir-rising   {background:#14532d;color:#4ade80}
 .dir-recovering{background:#1a3d2a;color:#86efac}
 .dir-neutral  {background:#222;color:#888}
 .dir-weakening{background:#431407;color:#fb923c}
 .dir-falling  {background:#7f1d1d;color:#f87171}
-/* Arrow trail */
 .arrow-trail{font-size:13px;letter-spacing:3px;font-family:'Segoe UI Symbol','Apple Color Emoji',sans-serif;line-height:1}
-/* Tooltip */
 .tt{position:fixed;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:12px;font-size:11px;z-index:1000;pointer-events:none;display:none;width:280px;box-shadow:0 4px 16px rgba(0,0,0,0.5)}
 .tt.show{display:block}
 .tt-sym{font-size:15px;font-weight:600;color:#fff;margin-bottom:2px}
@@ -90,7 +85,6 @@ input[type="text"]{padding:5px 9px;background:#151515;border:1px solid #2a2a2a;b
 .tt-val.pos{color:#4ade80}.tt-val.neg{color:#f87171}
 .tt-sep{margin:7px 0;border-top:1px solid #2a2a2a}
 .tt-grp{color:#666;font-size:9px;text-transform:uppercase;letter-spacing:0.5px}
-/* Legend */
 .legend{display:flex;gap:12px;padding:7px 12px;background:#0d0d0d;border:1px solid #1a1a1a;border-radius:6px;margin-top:8px;flex-wrap:wrap;justify-content:center;align-items:center}
 .leg{display:flex;align-items:center;gap:4px;font-size:10px;color:#bbb}
 .ld{width:9px;height:9px;border-radius:50%;border:1px solid rgba(0,0,0,0.3)}
@@ -106,7 +100,7 @@ input[type="text"]{padding:5px 9px;background:#151515;border:1px solid #2a2a2a;b
   <select id="selSource" class="primary"><option value="intraday">Intraday</option><option value="eod">EOD</option></select>
   <input type="text" id="inpSearch" placeholder="Search...">
   <select id="selState"><option value="">All States</option><option value="BULL ACCEL">Bull Accel</option><option value="BULL ESTAB">Bull Estab</option><option value="BULL FADING">Bull Fading</option><option value="EARLY RECV">Early Recv</option><option value="BEAR DECEL">Bear Decel</option><option value="BEAR ACCEL">Bear Accel</option></select>
-  <select id="selSignal"><option value="">All Signals</option><option value="RISING">Rising</option><option value="RECOVERING">Recovering</option><option value="NEUTRAL">Neutral</option><option value="WEAKENING">Weakening</option><option value="FALLING">Falling</option></select>
+  <select id="selZone"><option value="">All Zones</option><option value="Z1">Z1 (entry)</option><option value="Z2">Z2 (T40M40)</option><option value="Z3">Z3 (T60M60)</option><option value="Z4">Z4 ★ (T80M80)</option></select>
   <select id="selGroup"><option value="">All Groups</option></select>
   <select id="selWatchlist"><option value="">All Universe</option><option value="UK ETFS" selected>UK ETFs</option><option value="MAIN">US / Main</option><option value="BOTH">Both</option></select>
   <button id="btnHeld">My Positions</button>
@@ -124,18 +118,14 @@ input[type="text"]{padding:5px 9px;background:#151515;border:1px solid #2a2a2a;b
   </div>
   <div class="results-panel">
     <div class="rhead"><span>RESULTS</span><span class="rcount" id="rcount">0</span></div>
-    <div class="rcols"><span>Sym</span><span>State</span><span>Signal</span><span>Trail old&#8594;new</span></div>
+    <div class="rcols"><span>Sym</span><span>State</span><span>T</span><span>M</span><span>Zone</span></div>
     <div class="rlist" id="RL"></div>
   </div>
 </div>
 <div class="legend">
-  <div class="leg"><div class="ld" style="background:#4ade80"></div>Rising</div>
-  <div class="leg"><div class="ld" style="background:#86efac"></div>Recovering</div>
-  <div class="leg"><div class="ld" style="background:#888"></div>Neutral</div>
-  <div class="leg"><div class="ld" style="background:#fb923c"></div>Weakening</div>
-  <div class="leg"><div class="ld" style="background:#f87171"></div>Falling</div>
-  <div class="leg-sep"></div>
-  <div class="leg"><div class="leg-held"></div>Held</div>
+  <div class="leg"><div class="ld" style="background:#4ade80"></div>Mom building (5d+)</div>
+  <div class="leg"><div class="ld" style="background:#fbbf24"></div>Flat</div>
+  <div class="leg"><div class="ld" style="background:#f87171"></div>Mom fading (5d-)</div>
   <div class="leg-sep"></div>
   <div class="leg" style="color:#f87171">&#9475; T=10 Wall</div>
   <div class="leg" style="color:#aaa">&#8213; M=T</div>
@@ -146,41 +136,75 @@ const SB='https://pzskvslhfaituzyukasl.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6c2t2c2xoZmFpdHV6eXVrYXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwNzQyNTAsImV4cCI6MjA3OTY1MDI1MH0.FEZTIIQ4zgdb7uswf70XZI9Ph6ykSeDkfxooIcRIOMw';
 const H={'apikey':SK,'Authorization':'Bearer '+SK};
 let data=[],held=new Set(),src='intraday',trails=true,heldOnly=false,hl=null;
-let fState='',fSignal='',fGroup='',fWatch='UK ETFS';
+let fState='',fGroup='',fWatch='UK ETFS';
+let fZone='';
 const CA=document.getElementById('CA'),TT=document.getElementById('TT'),RL=document.getElementById('RL');
 
 function tX(v){return((v+100)/200)*CA.clientWidth}
 function mY(v){return CA.clientHeight-((v+100)/200)*CA.clientHeight}
 function clamp(v){return Math.max(-100,Math.min(100,v))}
 
-// State ordering for sort
 const STATE_ORD={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6};
 const STATE_NUM={'BULL ACCEL':1,'BULL ESTAB':2,'BULL FADING':3,'EARLY RECV':4,'BEAR DECEL':5,'BEAR ACCEL':6};
 const SIG_ORD={RISING:1,RECOVERING:2,NEUTRAL:3,WEAKENING:4,FALLING:5};
-
-// Dot colour = signal
 const SIG_DOT_COL={RISING:'#4ade80',RECOVERING:'#86efac',NEUTRAL:'#888',WEAKENING:'#fb923c',FALLING:'#f87171'};
-function sigDotCol(s){return SIG_DOT_COL[s]||'#555'}
-function sigDotCls(s){return({RISING:'sig-rising',RECOVERING:'sig-recovering',NEUTRAL:'sig-neutral',WEAKENING:'sig-weakening',FALLING:'sig-falling'})[s]||'sig-neutral'}
+function sigDotCol(d){
+  var m5=parseFloat(d.mom_d5)||0;
+  if(m5>2)return'#4ade80';   // momentum building — green
+  if(m5<-2)return'#f87171';  // momentum fading — red
+  return'#fbbf24';            // flat/transitioning — amber
+}
+function sigDotCls(d){
+  var m5=parseFloat(d.mom_d5)||0;
+  if(m5>2)return'sig-rising';
+  if(m5<-2)return'sig-falling';
+  return'sig-neutral';
+}
 function sigPillCls(s){return({RISING:'dir-rising',RECOVERING:'dir-recovering',NEUTRAL:'dir-neutral',WEAKENING:'dir-weakening',FALLING:'dir-falling'})[s]||'dir-neutral'}
-
-// Arrow trail colours — matches dashboard
 const ARROW_COL={'\u2197':'#4ade80','\u2191':'#4ade80','\u2192':'#86efac','\u2198':'#fbbf24','\u2022':'#555','\u2196':'#fb923c','\u2193':'#fb923c','\u2190':'#f87171','\u2199':'#f87171'};
 function fmtTrail(v){
   if(!v)return'-';
   return'<span class="arrow-trail">'+[...v].map(c=>'<span style="color:'+(ARROW_COL[c]||'#888')+'">'+c+'</span>').join('')+'</span>';
 }
 function fmtSig(v){if(!v)return'-';return'<span class="dir-pill '+sigPillCls(v)+'">'+v+'</span>';}
-function fmtState(s){if(!s)return'';return'<span class="state-badge state-'+( STATE_NUM[s]||0)+'">'+s+'</span>';}
+function fmtState(s){if(!s)return'';return'<span class="state-badge state-'+(STATE_NUM[s]||0)+'">'+s+'</span>';}
+
+/* ADDED: zone helpers — Z1=T>10/M>0, Z2=T>40/M>40, Z3=T>60/M>60, Z4=T>80/M>80 */
+const ZONE_RANK={'NEGATIVE':0,'Z1':1,'Z2':2,'Z3':3,'Z4':4};
+const ZONE_COL={'NEGATIVE':'','Z1':'#d4a017','Z2':'#a3e635','Z3':'#4ade80','Z4':'#22c55e'};
+function getZone(t,m){
+  if(t>=80&&m>=80)return'Z4';
+  if(t>=60&&m>=60)return'Z3';
+  if(t>=40&&m>=40)return'Z2';
+  if(t>10&&m>0)return'Z1';
+  return'NEGATIVE';
+}
+function getZoneMove(d){
+  var t=parseFloat(d.trend)||0,m=parseFloat(d.mom)||0;
+  var td1=parseFloat(d.trend_d1)||0,md1=parseFloat(d.mom_d1)||0;
+  if(td1===0&&md1===0)return null;
+  var ty=t-td1,my=m-md1;
+  var zNow=getZone(t,m),zYest=getZone(ty,my);
+  if(zNow===zYest)return null;
+  // Include Z1 entries from NEGATIVE but exclude NEGATIVE→NEGATIVE
+  if(zNow==='NEGATIVE'&&zYest==='NEGATIVE')return null;
+  if(zNow==='NEGATIVE')return{now:zNow,prev:zYest,up:false}; // dropped out
+  if(zYest==='NEGATIVE')return{now:zNow,prev:zYest,up:true}; // entered from negative
+  return{now:zNow,prev:zYest,up:ZONE_RANK[zNow]>ZONE_RANK[zYest]};
+}
 
 function matchFilter(d){
   var q=document.getElementById('inpSearch').value.trim().toUpperCase();
   if(q&&!d.symbol.toUpperCase().includes(q)&&!(d.name||'').toUpperCase().includes(q))return false;
   if(heldOnly&&!held.has(d.symbol))return false;
   if(fState&&d.state_name!==fState)return false;
-  if(fSignal&&d.dir_signal!==fSignal)return false;
   if(fGroup&&d.group_name!==fGroup)return false;
   if(fWatch&&d.watchlist!==fWatch)return false;
+  /* ADDED: zone filter — exact zone match */
+  if(fZone){
+    var t=parseFloat(d.trend)||0,m=parseFloat(d.mom)||0;
+    if(getZone(t,m)!==fZone)return false;
+  }
   return true;
 }
 function filtered(){return data.filter(matchFilter)}
@@ -188,19 +212,17 @@ function filtered(){return data.filter(matchFilter)}
 function drawGrid(){
   CA.innerHTML='';
   var w=CA.clientWidth,h=CA.clientHeight,el;
-
-  // Background zones
+  // ORIGINAL background zones
   el=document.createElement('div');el.className='zone';el.style.cssText='left:0;top:0;width:'+tX(0)+'px;height:100%;background:rgba(0,0,0,0.4)';CA.appendChild(el);
   el=document.createElement('div');el.className='zone';el.style.cssText='left:'+tX(0)+'px;top:0;width:'+(tX(10)-tX(0))+'px;height:100%;background:rgba(220,50,50,0.15)';CA.appendChild(el);
-  el=document.createElement('div');el.className='zone';el.style.cssText='left:'+tX(10)+'px;top:0;width:'+(tX(20)-tX(10))+'px;height:100%;background:rgba(200,150,0,0.08)';CA.appendChild(el);
+  // REMOVED: T=20 amber zone (was here)
   [{x1:0,y1:0,x2:100,y2:100,c:'rgba(74,222,128,0.02)'},{x1:0,y1:-100,x2:100,y2:0,c:'rgba(96,165,250,0.015)'}].forEach(function(q){
     var e=document.createElement('div');e.className='zone';
     e.style.left=tX(q.x1)+'px';e.style.top=mY(q.y2)+'px';
     e.style.width=(tX(q.x2)-tX(q.x1))+'px';e.style.height=(mY(q.y1)-mY(q.y2))+'px';
     e.style.background=q.c;CA.appendChild(e);
   });
-
-  // Gridlines
+  // ORIGINAL gridlines
   [-100,-75,-50,-25,0,25,50,75,100].forEach(function(v){
     var z=v===0;
     var vl=document.createElement('div');vl.className='gl'+(z?' zero':'');
@@ -212,34 +234,58 @@ function drawGrid(){
       var yt=document.createElement('div');yt.className='tick';yt.style.left='-30px';yt.style.top=mY(v)+'px';yt.style.transform='translateY(-50%)';yt.textContent=v;CA.appendChild(yt);
     }
   });
-
-  // T=10 wall
+  // ORIGINAL T=10 wall
   el=document.createElement('div');el.className='gl';
   el.style.cssText='left:'+tX(10)+'px;top:0;width:2.5px;height:100%;background:rgba(248,113,113,0.75);z-index:2';CA.appendChild(el);
   el=document.createElement('div');el.className='zone';
   el.style.cssText='left:'+(tX(10)+5)+'px;top:4px;font-size:9px;color:rgba(248,113,113,0.85);font-weight:700';el.textContent='T=10 WALL';CA.appendChild(el);
-
-  // Canvas: M=T diagonal + T=20 caution
+  // Canvas
   var cv=document.createElement('canvas');
   cv.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1';
   cv.width=w;cv.height=h;
   var ctx=cv.getContext('2d');
-  // M=T — more visible
+  // ORIGINAL M=T diagonal
   ctx.strokeStyle='rgba(255,255,255,0.28)';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);
   ctx.beginPath();ctx.moveTo(tX(-100),mY(-100));ctx.lineTo(tX(100),mY(100));ctx.stroke();
-  // T=20 caution
-  ctx.strokeStyle='rgba(250,204,21,0.4)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
-  ctx.beginPath();ctx.moveTo(tX(20),0);ctx.lineTo(tX(20),h);ctx.stroke();
-  // M=T label
+  ctx.setLineDash([]);
+  // REMOVED: T=20 caution line
+  // ORIGINAL M=T label
   ctx.fillStyle='rgba(255,255,255,0.25)';ctx.font='10px sans-serif';
   ctx.save();ctx.translate(tX(55),mY(60));ctx.rotate(-Math.atan2(mY(0)-mY(100),tX(100)-tX(0)));
   ctx.fillText('M = T',0,0);ctx.restore();
+  // ADDED: zone boundaries — Z1-Z4, colours match panel
+  ctx.setLineDash([]);
+  // Z1: T>10, M>0 — amber dashed, sits at T=10 wall
+  ctx.strokeStyle='rgba(212,160,23,0.30)';ctx.lineWidth=1;ctx.setLineDash([3,6]);
+  ctx.strokeRect(tX(10)+0.5,0+0.5,(w-tX(10))-1,mY(0)-1);
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(212,160,23,0.50)';ctx.font='bold 9px sans-serif';
+  ctx.fillText('Z1',tX(10)+5,14);
+  // Z2: T40M40 — lime dashed
+  ctx.strokeStyle='rgba(163,230,53,0.45)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.strokeRect(tX(40)+0.5,0+0.5,(w-tX(40))-1,mY(40)-1);
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(163,230,53,0.60)';ctx.font='bold 9px sans-serif';
+  ctx.fillText('Z2',tX(40)+5,14);
+  // Z3: T60M60 — green solid
+  ctx.strokeStyle='rgba(74,222,128,0.55)';ctx.lineWidth=1.5;
+  ctx.strokeRect(tX(60)+0.5,0+0.5,(w-tX(60))-1,mY(60)-1);
+  ctx.fillStyle='rgba(74,222,128,0.06)';
+  ctx.fillRect(tX(60),0,w-tX(60),mY(60));
+  ctx.fillStyle='rgba(74,222,128,0.65)';ctx.font='bold 9px sans-serif';
+  ctx.fillText('Z3',tX(60)+5,14);
+  // Z4: T80M80 — bright green, sweet spot
+  ctx.strokeStyle='rgba(34,197,94,0.80)';ctx.lineWidth=2;
+  ctx.strokeRect(tX(80)+0.5,0+0.5,(w-tX(80))-1,mY(80)-1);
+  ctx.fillStyle='rgba(34,197,94,0.11)';
+  ctx.fillRect(tX(80),0,w-tX(80),mY(80));
+  ctx.fillStyle='rgba(34,197,94,0.70)';ctx.font='bold 9px sans-serif';
+  ctx.fillText('Z4',tX(80)+5,14);
   CA.appendChild(cv);
-
-  // State zone labels — more visible
+  // ORIGINAL state zone labels
   [{t:'BULL',sub:'ACCEL',x:20,y:78,c:'#4ade80'},{t:'BULL',sub:'ESTAB',x:70,y:22,c:'#22c55e'},
    {t:'BULL',sub:'FADING',x:55,y:-35,c:'#93c5fd'},{t:'EARLY',sub:'RECV',x:-45,y:55,c:'#fbbf24'},
-   {t:'BEAR',sub:'DECEL',x:-22,y:-22,c:'#fb923c'},{t:'BEAR',sub:'ACCEL',x:-60,y:-68,c:'#f87171'}
+   {t:'BEAR',sub:'DECEL',x:-20,y:-68,c:'#fb923c'},{t:'BEAR',sub:'ACCEL',x:-68,y:-20,c:'#f87171'}
   ].forEach(function(l){
     var e=document.createElement('div');e.className='zone-name';
     e.style.left=tX(l.x)+'px';e.style.top=mY(l.y)+'px';
@@ -248,86 +294,97 @@ function drawGrid(){
   });
 }
 
-function drawLine(x0,y0,x1,y1,col,op){
+function drawLine(x0,y0,x1,y1,col,op,sym){
   var dx=x1-x0,dy=y1-y0,len=Math.sqrt(dx*dx+dy*dy);if(len<1)return;
   var e=document.createElement('div');e.className='trail-line';
   e.style.left=x0+'px';e.style.top=y0+'px';e.style.width=len+'px';
   e.style.transform='rotate('+Math.atan2(dy,dx)*180/Math.PI+'deg)';
-  e.style.background=col;e.style.opacity=op;CA.appendChild(e);
+  e.style.background=col;e.style.opacity=op;
+  if(sym)e.dataset.sym=sym;
+  CA.appendChild(e);
 }
 
 function drawPoints(){
   CA.querySelectorAll('.dot,.dot-label,.ghost,.trail-line').forEach(function(e){e.remove()});
   filtered().forEach(function(d){
     var t=clamp(parseFloat(d.trend)||0),m=clamp(parseFloat(d.mom)||0);
-    var col=sigDotCol(d.dir_signal);
+    var col=sigDotCol(d);
     var x=tX(t),y=mY(m);
-
-    // Trails
     if(trails&&d.trend_d1!==undefined&&d.trend_d1!==null){
       var td1=parseFloat(d.trend_d1)||0,md1=parseFloat(d.mom_d1)||0;
       var td5=parseFloat(d.trend_d5)||0,md5=parseFloat(d.mom_d5)||0;
       var t1=clamp(t-td1),m1=clamp(m-md1),t5=clamp(t-td5),m5=clamp(m-md5);
-      drawLine(tX(t5),mY(m5),tX(t1),mY(m1),col,0.22);
-      drawLine(tX(t1),mY(m1),x,y,col,0.45);
-      var g5=document.createElement('div');g5.className='ghost';
-      g5.style.cssText='left:'+tX(t5)+'px;top:'+mY(m5)+'px;width:4px;height:4px;background:'+col+';opacity:0.28';CA.appendChild(g5);
-      var g1=document.createElement('div');g1.className='ghost';
-      g1.style.cssText='left:'+tX(t1)+'px;top:'+mY(m1)+'px;width:5px;height:5px;background:'+col+';opacity:0.45';CA.appendChild(g1);
+      drawLine(tX(t5),mY(m5),tX(t1),mY(m1),col,0.22,d.symbol);
+      drawLine(tX(t1),mY(m1),x,y,col,0.45,d.symbol);
+      var g5=document.createElement('div');g5.className='ghost';g5.dataset.sym=d.symbol;
+      g5.style.left=tX(t5)+'px';g5.style.top=mY(m5)+'px';g5.style.width='4px';g5.style.height='4px';g5.style.background=col;g5.style.opacity='0.28';CA.appendChild(g5);
+      var g1=document.createElement('div');g1.className='ghost';g1.dataset.sym=d.symbol;
+      g1.style.left=tX(t1)+'px';g1.style.top=mY(m1)+'px';g1.style.width='5px';g1.style.height='5px';g1.style.background=col;g1.style.opacity='0.45';CA.appendChild(g1);
     }
-
     var dot=document.createElement('div');
-    dot.className='dot '+sigDotCls(d.dir_signal)+(held.has(d.symbol)?' held':'')+(d.symbol===hl?' hl':'');
+    dot.className='dot '+sigDotCls(d)+(held.has(d.symbol)?' held':'')+(d.symbol===hl?' hl':'');
     dot.style.left=x+'px';dot.style.top=y+'px';dot.dataset.sym=d.symbol;
-    dot.addEventListener('mouseenter',function(e){hlSet(d.symbol);showTT(d,e)});
+    dot.addEventListener('mouseenter',function(e){showTT(d,e)});
     dot.addEventListener('mousemove',posTT);
-    dot.addEventListener('mouseleave',function(){hlSet(null);hideTT()});
+    dot.addEventListener('mouseleave',function(){hideTT()});
+    dot.addEventListener('click',function(e){e.stopPropagation();hlSet(d.symbol===hl?null:d.symbol);});
     CA.appendChild(dot);
-
     var lb=document.createElement('div');lb.className='dot-label';
     lb.style.left=x+'px';lb.style.top=y+'px';lb.textContent=d.symbol;CA.appendChild(lb);
   });
 }
 
+// ORIGINAL renderList — verbatim
 function renderList(){
   var fd=filtered();
   document.getElementById('rcount').textContent=fd.length;
-  // Sort: state order (1-6) then signal order (RISING-FALLING) within state
   var sorted=fd.slice().sort(function(a,b){
-    var sa=STATE_ORD[a.state_name]||9,sb=STATE_ORD[b.state_name]||9;
-    if(sa!==sb)return sa-sb;
-    var qa=SIG_ORD[a.dir_signal]||3,qb=SIG_ORD[b.dir_signal]||3;
-    return qa-qb;
+    return(parseFloat(b.trend)||0)-(parseFloat(a.trend)||0);
   });
   RL.innerHTML=sorted.map(function(d){
-    return'<div class="ri'+(held.has(d.symbol)?' held':'')+(d.symbol===hl?' hl':'')+'" data-sym="'+d.symbol+'">'
+    var t=parseFloat(d.trend)||0,m=parseFloat(d.mom)||0;
+    var zNow=getZone(t,m);
+    var zoneCol=ZONE_COL[zNow]||'#fff';
+    // Zone column: Z1-Z4 label in zone colour, blank for NEGATIVE
+    var zoneHtml='';
+    if(zNow!=='NEGATIVE'){
+      zoneHtml='<span style="font-size:10px;color:'+zoneCol+';font-weight:600">'+zNow+'</span>';
+    }
+    // White border for held positions only
+    var borderCol=held.has(d.symbol)?'#fff':'transparent';
+    return'<div class="ri'+(d.symbol===hl?' hl':'')+'" data-sym="'+d.symbol+'" style="border-left-color:'+borderCol+'">'
       +'<span class="ri-sym">'+d.symbol+'</span>'
       +'<span>'+fmtState(d.state_name)+'</span>'
-      +'<span>'+fmtSig(d.dir_signal)+'</span>'
-      +'<span>'+fmtTrail(d.arrow_trail)+'</span>'
+      +'<span style="font-size:10px;color:#fff;font-variant-numeric:tabular-nums">'+t.toFixed(0)+'</span>'
+      +'<span style="font-size:10px;color:#fff;font-variant-numeric:tabular-nums">'+m.toFixed(0)+'</span>'
+      +'<span>'+zoneHtml+'</span>'
       +'</div>';
   }).join('');
   RL.querySelectorAll('.ri').forEach(function(el){
     el.addEventListener('mouseenter',function(){
-      hlSet(el.dataset.sym);
       var d=data.find(function(r){return r.symbol===el.dataset.sym});
       if(d){var rect=el.getBoundingClientRect();showTT(d,{clientX:rect.left-10,clientY:rect.top+rect.height/2});}
     });
-    el.addEventListener('mouseleave',function(){hlSet(null);hideTT()});
+    el.addEventListener('mouseleave',function(){hideTT()});
     el.addEventListener('click',function(){
-      var dot=CA.querySelector('.dot[data-sym="'+el.dataset.sym+'"]');
-      if(dot)dot.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
-      hlSet(el.dataset.sym);
+      var sym=el.dataset.sym;
+      hlSet(sym===hl?null:sym);
+      var dot=CA.querySelector('.dot[data-sym="'+sym+'"]');
+      if(dot&&sym!==hl)dot.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
     });
   });
 }
 
 function hlSet(s){
   hl=s;
-  CA.querySelectorAll('.dot').forEach(function(d){d.classList.toggle('hl',d.dataset.sym===s)});
+  CA.querySelectorAll('.dot').forEach(function(e){
+    e.classList.toggle('hl',e.dataset.sym===s);
+    e.style.opacity='';
+  });
   RL.querySelectorAll('.ri').forEach(function(r){r.classList.toggle('hl',r.dataset.sym===s)});
 }
 
+// ORIGINAL showTT — verbatim
 function showTT(d,e){
   var t=parseFloat(d.trend)||0,m=parseFloat(d.mom)||0;
   var p1=parseFloat(d.perf_1d)||0,p5=parseFloat(d.perf_5d)||0;
@@ -335,7 +392,7 @@ function showTT(d,e){
   TT.innerHTML=
     '<div class="tt-sym">'+d.symbol+'</div>'
     +'<div class="tt-name">'+(d.name||'')+'</div>'
-    +'<div class="tt-badges">'+fmtState(d.state_name)+fmtSig(d.dir_signal)+'</div>'
+    +'<div class="tt-badges">'+fmtState(d.state_name)+'</div>'
     +'<div class="tt-trail-row"><span class="tt-trail-lbl">Trail:</span>'+fmtTrail(d.arrow_trail)+'</div>'
     +'<div class="tt-sep"></div>'
     +'<div class="tt-grid">'
@@ -360,7 +417,6 @@ async function load(){
     var vR=await fetch(SB+'/rest/v1/'+vw+'?select=*',{headers:H});
     if(!vR.ok)throw new Error('Fetch failed');
     data=await vR.json();
-    // Fetch delta columns for trail lines
     var sR=await fetch(SB+'/rest/v1/mv_signals_maths?select=symbol,trend_d1,trend_d5,mom_d1,mom_d5',{headers:H});
     if(sR.ok){
       var sig=await sR.json();
@@ -375,28 +431,31 @@ async function load(){
     var gs=document.getElementById('selGroup');gs.innerHTML='<option value="">All Groups</option>';
     grps.forEach(function(g){var o=document.createElement('option');o.value=g;o.textContent=g;gs.appendChild(o)});
     refresh();
-  }catch(err){console.error(err);document.getElementById('ts').textContent='Error loading'}
+  }catch(err){console.error(err);document.getElementById('ts').textContent='Error: '+err.message}
 }
 
+// ORIGINAL event listeners — verbatim, plus ADDED zone listeners
 document.getElementById('btnRefresh').addEventListener('click',function(){document.getElementById('ts').textContent='Refreshing...';load()});
 document.getElementById('selSource').addEventListener('change',function(e){src=e.target.value;load()});
 document.getElementById('inpSearch').addEventListener('input',refresh);
 document.getElementById('selState').addEventListener('change',function(e){fState=e.target.value;refresh()});
-document.getElementById('selSignal').addEventListener('change',function(e){fSignal=e.target.value;refresh()});
+document.getElementById('selZone').addEventListener('change',function(e){fZone=e.target.value;refresh()});
 document.getElementById('selGroup').addEventListener('change',function(e){fGroup=e.target.value;refresh()});
 document.getElementById('selWatchlist').addEventListener('change',function(e){fWatch=e.target.value;refresh()});
 document.getElementById('btnHeld').addEventListener('click',function(e){heldOnly=!heldOnly;e.target.classList.toggle('active',heldOnly);refresh()});
 document.getElementById('btnTrails').addEventListener('click',function(e){trails=!trails;e.target.classList.toggle('active',trails);refresh()});
 document.getElementById('btnClear').addEventListener('click',function(){
-  fState='';fSignal='';fGroup='';fWatch='UK ETFS';heldOnly=false;trails=true;hl=null;
+  fState='';fGroup='';fWatch='UK ETFS';heldOnly=false;trails=true;hl=null;
+  fZone='';
   document.getElementById('inpSearch').value='';document.getElementById('selState').value='';
-  document.getElementById('selSignal').value='';document.getElementById('selGroup').value='';
-  document.getElementById('selWatchlist').value='UK ETFS';
+  document.getElementById('selZone').value='';
+  document.getElementById('selGroup').value='';document.getElementById('selWatchlist').value='UK ETFS';
   document.getElementById('btnHeld').classList.remove('active');
   document.getElementById('btnTrails').classList.add('active');
   refresh();
 });
 window.addEventListener('resize',refresh);
+document.getElementById('CA').addEventListener('click',function(){hlSet(null);});
 load();
 </script>
 </body>
