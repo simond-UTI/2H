@@ -37,10 +37,11 @@ async function load(){
     }else{
       const wlEnc=encodeURIComponent(wl);
       const wlFilter=`&watchlist=in.(${wlEnc},BOTH)`;
-      const [calRes,guideRes,posRes]=await Promise.all([
-        fetch(`${SURL}/rest/v1/v_2h_calibrated_v1_latest?select=${CAL_COLS}${wlFilter}&limit=500`,{headers:H}),
-        fetch(`${SURL}/rest/v1/v_2h_guidance?select=${GUIDE_COLS}${wlFilter}&limit=500`,{headers:H}),
-        fetch(`${SURL}/rest/v1/positions?select=symbol`,{headers:H})
+      const [calRes,guideRes,posRes,cfgRes]=await Promise.all([
+        fetch(`${SURL}/rest/v1/v_2h_calibrated_v1_latest?select=${CAL_COLS}${wlFilter}&limit=2000`,{headers:H}),
+        fetch(`${SURL}/rest/v1/v_2h_guidance?select=${GUIDE_COLS}${wlFilter}&limit=2000`,{headers:H}),
+        fetch(`${SURL}/rest/v1/positions?select=symbol`,{headers:H}),
+        fetch(`${SURL}/rest/v1/tickers_config?select=symbol,name,group_name,watchlist${wlFilter}&order=symbol&limit=2000`,{headers:H})
       ]);
       async function bail(label,res){
         if(res.ok)return;
@@ -49,8 +50,10 @@ async function load(){
       }
       await bail('calibrated',calRes);
       await bail('guide',guideRes);
+      await bail('config',cfgRes);
       const calData=await calRes.json();
       const guideData=await guideRes.json();
+      const cfgData=await cfgRes.json();
       if(posRes.ok){
         const pos=await posRes.json();
         positions=new Set(pos.map(p=>p.symbol));
@@ -58,12 +61,27 @@ async function load(){
       }
       const gmap={};
       guideData.forEach(g=>{gmap[g.symbol]=g;});
-      all=calData.map(r=>{
+      // Build calibrated lookup keyed by NORMALISED symbol (strip exchange prefix).
+      // Symbols in the calibrated view may be stored as e.g. 'LSE:JPSG'; the
+      // tickers_config table uses unprefixed 'JPSG'. We normalise both sides.
+      const calmap={};
+      calData.forEach(r=>{
         const sym=r.symbol||stripPrefix(r.ticker);
+        const normalised=stripPrefix(sym);
+        calmap[normalised]=Object.assign({},r,{symbol:normalised});
+      });
+      // Iterate over tickers_config so symbols missing from the calibrated
+      // view (e.g., insufficient price history, recent additions) still
+      // appear in the Universe with — in framework cells.
+      all=cfgData.map(c=>{
+        const sym=stripPrefix(c.symbol);
+        const r=calmap[sym]||{symbol:sym,group_name:c.group_name,watchlist:c.watchlist};
         const g=gmap[sym]||{};
         return Object.assign({},r,{
           symbol:sym,
-          name:g.name||'',
+          name:g.name||c.name||r.name||'',
+          group_name:r.group_name||c.group_name||null,
+          watchlist:r.watchlist||c.watchlist||null,
           trend:g.trend!=null?parseFloat(g.trend):null,
           momentum:g.momentum!=null?parseFloat(g.momentum):null,
           state_name:g.state_name||null,
@@ -93,17 +111,20 @@ async function loadPositions(){
   positions=new Set(pos.map(p=>p.symbol).filter(s=>s&&s!=='CASH'&&s!=='Cash'));
   if(positions.has('BIT-XBTE'))positions.add('BTCUSD');
   const symList=[...positions].map(s=>encodeURIComponent(s)).join(',');
-  const [sizeRes,calRes,guideRes]=await Promise.all([
+  const [sizeRes,calRes,guideRes,cfgRes]=await Promise.all([
     fetch(`${SURL}/rest/v1/v_positions_with_sizing?select=symbol,portfolio_pct,effective_max_pct,pct_of_max,value_gbp`,{headers:H}),
     fetch(`${SURL}/rest/v1/v_2h_calibrated_v1_latest?select=${CAL_COLS}&symbol=in.(${symList})&limit=200`,{headers:H}),
-    fetch(`${SURL}/rest/v1/v_2h_guidance?select=${GUIDE_COLS}&symbol=in.(${symList})&limit=200`,{headers:H})
+    fetch(`${SURL}/rest/v1/v_2h_guidance?select=${GUIDE_COLS}&symbol=in.(${symList})&limit=200`,{headers:H}),
+    fetch(`${SURL}/rest/v1/tickers_config?select=symbol,name,group_name&symbol=in.(${symList})&limit=200`,{headers:H})
   ]);
   if(!sizeRes.ok)throw new Error('sizing: '+sizeRes.status);
   if(!calRes.ok){const body=await calRes.text().catch(()=>'');throw new Error(`calibrated: ${calRes.status} — ${body.slice(0,200)}`);}
   if(!guideRes.ok){const body=await guideRes.text().catch(()=>'');throw new Error(`guide: ${guideRes.status} — ${body.slice(0,200)}`);}
+  if(!cfgRes.ok){const body=await cfgRes.text().catch(()=>'');throw new Error(`config: ${cfgRes.status} — ${body.slice(0,200)}`);}
   const sizeData=await sizeRes.json();
   const calData=await calRes.json();
   const guideData=await guideRes.json();
+  const cfgData=await cfgRes.json();
   positionSizing={};
   sizeData.forEach(s=>{
     if(!s.symbol||s.symbol==='CASH'||s.symbol==='Cash')return;
@@ -118,13 +139,31 @@ async function loadPositions(){
   });
   const gmap={};
   guideData.forEach(g=>{gmap[g.symbol]=g;});
-  all=calData.map(r=>{
+  // tickers_config lookup for group_name / name — covers tickers absent from
+  // calibrated view due to insufficient price history (e.g. G500, SWLH).
+  const cfgmap={};
+  cfgData.forEach(c=>{cfgmap[c.symbol]=c;});
+  // Build calibrated framework data lookup keyed by normalised symbol
+  // (strip exchange prefix to match positions table symbol format).
+  const calmap={};
+  calData.forEach(r=>{
     const sym=r.symbol||stripPrefix(r.ticker);
-    const g=gmap[sym]||{};
-    const sz=positionSizing[sym]||{};
+    const normalised=stripPrefix(sym);
+    calmap[normalised]=Object.assign({},r,{symbol:normalised});
+  });
+  // Iterate over HELD positions (not calibrated data), so positions without
+  // framework data (e.g., insufficient price history) still appear with —
+  // in the framework cells instead of being silently excluded.
+  all=[...positions].map(sym=>{
+    const normalised=stripPrefix(sym);
+    const r=calmap[normalised]||{symbol:normalised};
+    const g=gmap[normalised]||gmap[sym]||{};
+    const c=cfgmap[sym]||cfgmap[normalised]||{};
+    const sz=positionSizing[sym]||positionSizing[normalised]||{};
     return Object.assign({},r,sz,{
       symbol:sym,
-      name:g.name||'',
+      name:g.name||r.name||c.name||'',
+      group_name:r.group_name||c.group_name||null,
       trend:g.trend!=null?parseFloat(g.trend):null,
       momentum:g.momentum!=null?parseFloat(g.momentum):null,
       state_name:g.state_name||null,
