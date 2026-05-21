@@ -36,6 +36,7 @@
     <option value="EXHAUSTION">Exhaustion</option>
     <option value="AVOID">Avoid</option>
     <option value="LOCKOUT">Lockout</option>
+    <option value="STALE">Stale</option>
   </select>
 </div>
 <div class="top top-filters" id="macroSubNav" style="display:none;border-bottom:1px solid rgba(255,255,255,0.08)">
@@ -217,7 +218,7 @@ function zCell(v){if(v==null||isNaN(v))return dash;var f=parseFloat(v);return'<s
 function rocCell(v){if(v==null||isNaN(v))return dash;var f=parseFloat(v);return'<span style="color:'+(f>1?G:f<-1?R:W)+'">'+(f>0?'+':'')+f.toFixed(1)+'</span>';}
 function stateCell(v){if(!v)return dash;var col=W;if(v==='BULL ACCEL'||v==='BULL ESTAB')col=G;else if(v==='BEAR DECEL'||v==='BEAR ACCEL')col=R;return'<span style="color:'+col+'">'+v+'</span>';}
 function flipCell(v){var n=parseInt(v)||0;if(n===0)return dash;return'<span style="color:'+(n>0?G:R)+'">'+(n>0?'▲':'▼')+'</span>';}
-var REGIME_COL={'BUY':G,'ACCUMULATE':G,'HOLD':W,'WATCH':W,'RECOVERY':W,'TRIM':R,'TRAP':R,'EXHAUSTION':R,'AVOID':R,'LOCKOUT':R};
+var REGIME_COL={'BUY':G,'ACCUMULATE':G,'HOLD':W,'WATCH':W,'RECOVERY':W,'TRIM':R,'TRAP':R,'EXHAUSTION':R,'AVOID':R,'LOCKOUT':R,'STALE':'rgba(255,255,255,0.35)'};
 function regimeCell(v){if(!v||v==='—')return dash;return'<span style="color:'+(REGIME_COL[v]||W)+'">'+v+'</span>';}
 function portPctCell(v){if(v==null||isNaN(v))return dash;return'<span style="color:'+W+'">'+parseFloat(v).toFixed(1)+'%</span>';}
 function maxPctCell(v){if(v==null||isNaN(v))return dash;return'<span style="color:'+W+'">'+parseFloat(v).toFixed(1)+'%</span>';}
