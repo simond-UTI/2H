@@ -72,6 +72,7 @@ function tip(key){
 function tipAttr(key){var s=tip(key);return s?' data-tip="'+s.replace(/"/g,'&quot;')+'"':'';}
 
 var REGIME_COLS='symbol,name,group_name,watchlist,trend,momentum,state_name,slope_annual_pct,z_score,perf_1d,perf_5d,perf_1m,flip_s,flip_t,flip_m,regime';
+var VOL_COLS='symbol,name,group_name,watchlist,trend,momentum,state_name,slope_annual_pct,z_score,perf_1d,perf_5d,perf_1m,flip_s,flip_t,flip_m,regime,perf_1m,atr,close';
 var all=[],filt=[],positions=new Set(),positionSizing={};
 var sc='trend',sd=-1,wl='UK ETFS',grp='',state='',regime='',view='universe',macroPreset='riskranges';
 
@@ -219,6 +220,8 @@ function portPctCell(v){if(v==null||isNaN(v))return dash;return'<span style="col
 function maxPctCell(v){if(v==null||isNaN(v))return dash;return'<span style="color:'+W+'">'+parseFloat(v).toFixed(1)+'%</span>';}
 function pctMaxCell(v){if(v==null||isNaN(v))return dash;var f=parseFloat(v);return'<span style="color:'+(f>100?R:W)+'">'+Math.round(f)+'%</span>';}
 function valueCell(v){if(v==null||isNaN(v))return dash;return'<span style="color:'+W+'">£'+Math.round(parseFloat(v)).toLocaleString('en-GB')+'</span>';}
+// Sharpe spread z-score cell: green = high Sharpe outlier, red = low
+function sharpeCell(v){if(v==null||isNaN(v))return dash;var f=parseFloat(v);return'<span style="color:'+(f>=1?G:f<=-1?R:W)+'">'+(f>0?'+':'')+f.toFixed(2)+'</span>';}
 
 function render(){
   var tb=document.getElementById('tb');
@@ -292,7 +295,7 @@ function renderPortfolio(perf,accRaw,sizeRaw,benchmarks){
   host.innerHTML=summary+perfSec+benchSec+accSec+'<div class="psec"><div class="psec-title">By Group</div><table class="pt"><thead><tr><th>Group</th><th class="n">#</th><th class="n">Alloc%</th><th class="n">Value</th><th style="padding-left:32px">Positions</th></tr></thead><tbody>'+gr+'</tbody></table></div>';
 }
 
-// === MACRO (unchanged) ===
+// === MACRO ===
 var GROUP_ORDER={'BONDS':1,'US INDICES':2,'US SECTORS':3,'COUNTRIES':4,'VOLATILITY':5,'CURRENCIES':6,'ENERGY':7,'COMMODITIES':8,'GOLD':9,'PRECIOUS METALS':10,'STOCKS':11,'CRYPTO':12,'MINERS':13,'GLOBAL FACTORS':14,'OTHER':99};
 function rrTrendColor(t){if(!t)return W;var u=t.toUpperCase();return u==='BULLISH'?G:u==='BEARISH'?R:W;}
 function rrFormatPrice(v){if(v==null||isNaN(v))return dash;var n=parseFloat(v);if(n>=1000)return n.toLocaleString('en-US',{maximumFractionDigits:0});return n<10?n.toFixed(4):n.toFixed(2);}
@@ -300,19 +303,86 @@ function rrPosCell(p){if(p==null||isNaN(p))return dash;var n=parseFloat(p);retur
 function rrChgCell(v){if(v==null||isNaN(v))return dash;var n=parseFloat(v);return'<span style="color:'+(n>0?G:n<0?R:W)+'">'+(n>=0?'+':'')+n.toFixed(2)+'%</span>';}
 function numGrad(v){if(v==null||isNaN(v))return dash;var n=parseFloat(v);return'<span style="color:'+(n>0?G:n<0?R:W)+'">'+(n>0?'+':'')+n.toFixed(1)+'</span>';}
 function macroStateCell(s){if(!s)return dash;var c={'BULL ACCEL':G,'BULL ESTAB':G,'BEAR DECEL':R,'BEAR ACCEL':R};return'<span style="color:'+(c[s]||W)+'">'+s+'</span>';}
+
 function setMacro(p){
-  macroPreset=p;document.getElementById('mpRr').classList.toggle('on',p==='riskranges');document.getElementById('mpSectors').classList.toggle('on',p==='sectors');document.getElementById('mpVol').classList.toggle('on',p==='volatility');document.getElementById('mpBreadth').classList.toggle('on',p==='breadth');
+  macroPreset=p;
+  document.getElementById('mpRr').classList.toggle('on',p==='riskranges');
+  document.getElementById('mpSectors').classList.toggle('on',p==='sectors');
+  document.getElementById('mpVol').classList.toggle('on',p==='volatility');
+  document.getElementById('mpBreadth').classList.toggle('on',p==='breadth');
   if(p==='volatility'){loadMacroVolatility();}
-  else{document.getElementById('wrap-main').style.display='none';document.getElementById('wrap-macro').style.display='';document.getElementById('filterbar').style.display='none';document.getElementById('wltoggle').style.display='none';grp='';var gs=document.getElementById('gsel');if(gs)gs.value='';if(p==='sectors')loadMacroSectors();else if(p==='breadth')loadMacroBreadth();else loadMacroRiskRanges();}
+  else{
+    document.getElementById('wrap-main').style.display='none';
+    document.getElementById('wrap-macro').style.display='';
+    document.getElementById('filterbar').style.display='none';
+    document.getElementById('wltoggle').style.display='none';
+    grp='';var gs=document.getElementById('gsel');if(gs)gs.value='';
+    if(p==='sectors')loadMacroSectors();
+    else if(p==='breadth')loadMacroBreadth();
+    else loadMacroRiskRanges();
+  }
 }
+
+// === FIX 1: SECTORS — client-side aggregation with watchlist filter ===
 async function loadMacroSectors(){
   var host=document.getElementById('macro-host');host.innerHTML='<div class="msg">Loading…</div>';
-  try{var res=await fetch(SURL+'/rest/v1/v_macro_group_performance_v2?select=*',{headers:H});if(!res.ok)throw new Error('sectors: '+res.status);var data=await res.json();
-  data.sort(function(a,b){return(parseFloat(b.avg_trend)||0)-(parseFloat(a.avg_trend)||0);});
-  var rows=data.map(function(d){var p1=parseFloat(d.avg_1d_pct)||0,p5=parseFloat(d.avg_5d_pct)||0,br=parseFloat(d.breadth)||0;return'<tr><td style="padding-left:16px"><span style="color:'+W+'">'+(d.group_name||'')+'</span></td><td><span style="color:'+W+'">'+(d.ticker_count||0)+'</span></td><td class="gsep-lg">'+numGrad(d.avg_trend)+'</td><td class="gend">'+numGrad(d.avg_momentum)+'</td><td class="gsep gend">'+macroStateCell(d.state_name)+'</td><td class="gsep"><span style="color:'+(p1>0?G:p1<0?R:W)+'">'+(p1>=0?'+':'')+p1.toFixed(2)+'%</span></td><td class="gend"><span style="color:'+(p5>0?G:p5<0?R:W)+'">'+(p5>=0?'+':'')+p5.toFixed(2)+'%</span></td><td class="gsep"><span style="color:'+W+'">'+br.toFixed(0)+'%</span></td></tr>';}).join('');
-  host.innerHTML='<table><thead><tr class="gh"><th class="blank" colspan="2"></th><th colspan="2" class="gsep-lg gend">Position</th><th class="gsep gend">State</th><th colspan="2" class="gsep gend">Recent</th><th class="gsep">Breadth</th></tr><tr class="ch"><th style="min-width:160px;padding-left:16px">Sector</th><th style="min-width:48px">#</th><th class="gsep-lg" style="min-width:56px">Trend</th><th class="gend" style="min-width:56px">Mom</th><th class="gsep gend" style="min-width:120px">State</th><th class="gsep" style="min-width:70px">1D%</th><th class="gend" style="min-width:70px">5D%</th><th class="gsep" style="min-width:70px">Breadth</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  try{
+    // Fetch raw regime rows filtered by current watchlist — same pattern as universe tab
+    var wlParam='watchlist=in.('+encodeURIComponent(wl)+',BOTH)';
+    var res=await fetch(SURL+'/rest/v1/v_2h_regime?select=symbol,group_name,trend,momentum,state_name,regime,perf_1d,perf_5d&'+wlParam+'&limit=300',{headers:H});
+    if(!res.ok)throw new Error('sectors: '+res.status);
+    var rows=await res.json();
+    // Aggregate by group_name client-side — one row per group, no double-counting
+    var groups={};
+    rows.forEach(function(r){
+      if(!r.group_name||r.group_name==='VOLATILITY')return;
+      var g=r.group_name;
+      if(!groups[g])groups[g]={group_name:g,n:0,trend_sum:0,mom_sum:0,p1_sum:0,p5_sum:0};
+      var d=groups[g];
+      d.n++;
+      d.trend_sum+=(parseFloat(r.trend)||0);
+      d.mom_sum+=(parseFloat(r.momentum)||0);
+      d.p1_sum+=(parseFloat(r.perf_1d)||0);
+      d.p5_sum+=(parseFloat(r.perf_5d)||0);
+    });
+    // Compute averages and derive state from avg trend/momentum
+    var agg=Object.values(groups).map(function(g){
+      g.avg_trend=g.n?g.trend_sum/g.n:0;
+      g.avg_mom=g.n?g.mom_sum/g.n:0;
+      g.avg_1d=g.n?g.p1_sum/g.n:0;
+      g.avg_5d=g.n?g.p5_sum/g.n:0;
+      var t=g.avg_trend,m=g.avg_mom;
+      if(t>=0&&m>=0&&m>=t)g.state='BULL ACCEL';
+      else if(t>=0&&m>=0&&m<t)g.state='BULL ESTAB';
+      else if(t>=0&&m<0)g.state='BULL FADING';
+      else if(t<0&&m>=0)g.state='EARLY RECV';
+      else if(t<0&&m<0&&m>=t)g.state='BEAR DECEL';
+      else g.state='BEAR ACCEL';
+      return g;
+    });
+    agg.sort(function(a,b){return b.avg_trend-a.avg_trend;});
+    var tableRows=agg.map(function(d){
+      var p1=d.avg_1d,p5=d.avg_5d;
+      return'<tr>'+
+        '<td style="padding-left:16px"><span style="color:'+W+'">'+d.group_name+'</span></td>'+
+        '<td><span style="color:'+W+'">'+d.n+'</span></td>'+
+        '<td class="gsep-lg">'+numGrad(d.avg_trend)+'</td>'+
+        '<td class="gend">'+numGrad(d.avg_mom)+'</td>'+
+        '<td class="gsep gend">'+macroStateCell(d.state)+'</td>'+
+        '<td class="gsep"><span style="color:'+(p1>0?G:p1<0?R:W)+'">'+(p1>=0?'+':'')+p1.toFixed(2)+'%</span></td>'+
+        '<td class="gend"><span style="color:'+(p5>0?G:p5<0?R:W)+'">'+(p5>=0?'+':'')+p5.toFixed(2)+'%</span></td>'+
+        '</tr>';
+    }).join('');
+    host.innerHTML='<table><thead>'+
+      '<tr class="gh"><th class="blank" colspan="2"></th><th colspan="2" class="gsep-lg gend">Position</th><th class="gsep gend">State</th><th colspan="2" class="gsep gend">Recent</th></tr>'+
+      '<tr class="ch"><th style="min-width:160px;padding-left:16px">Sector</th><th style="min-width:48px">#</th>'+
+      '<th class="gsep-lg" style="min-width:56px">Trend</th><th class="gend" style="min-width:56px">Mom</th>'+
+      '<th class="gsep gend" style="min-width:120px">State</th>'+
+      '<th class="gsep" style="min-width:70px">1D%</th><th class="gend" style="min-width:70px">5D%</th></tr></thead>'+
+      '<tbody>'+tableRows+'</tbody></table>';
   }catch(e){host.innerHTML='<div class="msg" style="color:'+R+'">Error — '+e.message+'</div>';}
 }
+
 async function loadMacroBreadth(){
   var host=document.getElementById('macro-host');host.innerHTML='<div class="msg">Loading…</div>';
   try{var res=await fetch(SURL+'/rest/v1/v_2h_breadth?select=*',{headers:H});if(!res.ok)throw new Error('breadth: '+res.status);var data=await res.json();
@@ -323,22 +393,102 @@ async function loadMacroBreadth(){
   host.innerHTML='<table><thead><tr class="gh"><th class="blank" colspan="2"></th><th class="gsep-lg gend">Direction</th><th colspan="3" class="gsep gend">Location</th><th colspan="2" class="gsep gend">Count</th><th class="gsep">Posture</th></tr><tr class="ch"><th style="min-width:120px;padding-left:16px">Watchlist</th><th style="min-width:64px">Tickers</th><th class="gsep-lg" style="min-width:80px">Trend Up</th><th class="gend" style="min-width:80px">Trade Up</th><th class="gsep" style="min-width:64px">Cheap</th><th class="gend" style="min-width:80px">Stretched</th><th class="gsep gend" style="min-width:72px">Locked</th><th class="gsep" style="min-width:64px">Entry</th><th class="gend" style="min-width:72px">Defend</th><th class="gsep gend" style="min-width:110px">Posture</th></tr></thead><tbody>'+rows+'</tbody></table>';
   }catch(e){host.innerHTML='<div class="msg" style="color:'+R+'">Error — '+e.message+'</div>';}
 }
+
+// === FIX 3: VOLATILITY — with Sharpe spread column (client-side) ===
 async function loadMacroVolatility(){
-  document.getElementById('wrap-macro').style.display='none';document.getElementById('wrap-main').style.display='';document.getElementById('filterbar').style.display='none';document.getElementById('macroSubNav').style.display='';
-  grp='VOLATILITY';renderHeader();
-  try{var tb=document.getElementById('tb');tb.innerHTML='<tr><td colspan="18" class="msg">Loading…</td></tr>';
-  var [regRes,posRes]=await Promise.all([fetch(SURL+'/rest/v1/v_2h_regime?select='+REGIME_COLS+'&group_name=eq.VOLATILITY&limit=100',{headers:H}),fetch(SURL+'/rest/v1/positions?select=symbol',{headers:H})]);
-  if(!regRes.ok)throw new Error('volatility: '+regRes.status);
-  if(posRes.ok){var pos=await posRes.json();positions=new Set(pos.map(function(p){return p.symbol;}));if(positions.has('BIT-XBTE'))positions.add('BTCUSD');}
-  all=(await regRes.json()).map(parseRow);af();
-  }catch(e){document.getElementById('tb').innerHTML='<tr><td colspan="18" class="msg" style="color:'+R+'">Error — '+e.message+'</td></tr>';}
+  document.getElementById('wrap-macro').style.display='none';
+  document.getElementById('wrap-main').style.display='';
+  document.getElementById('filterbar').style.display='none';
+  document.getElementById('macroSubNav').style.display='';
+  grp='VOLATILITY';
+  try{
+    var tb=document.getElementById('tb');tb.innerHTML='<tr><td colspan="20" class="msg">Loading…</td></tr>';
+    var [regRes,posRes]=await Promise.all([
+      fetch(SURL+'/rest/v1/v_2h_regime?select='+REGIME_COLS+',perf_1m,atr,close&group_name=eq.VOLATILITY&limit=100',{headers:H}),
+      fetch(SURL+'/rest/v1/positions?select=symbol',{headers:H})
+    ]);
+    if(!regRes.ok)throw new Error('volatility: '+regRes.status);
+    if(posRes.ok){var pos=await posRes.json();positions=new Set(pos.map(function(p){return p.symbol;}));if(positions.has('BIT-XBTE'))positions.add('BTCUSD');}
+    var volData=(await regRes.json()).map(parseRow);
+
+    // Compute Sharpe proxy per ticker: perf_1m / (annualised vol proxy)
+    // Vol proxy = (atr/close) * sqrt(252) * 100  →  annualised vol %
+    // Sharpe proxy = perf_1m / vol_proxy  (21-bar return / annualised vol)
+    // Then z-score across the group
+    var sharpeVals=volData.map(function(r){
+      var p=parseFloat(r.perf_1m),a=parseFloat(r.atr),c=parseFloat(r.close);
+      if(!p||!a||!c||c===0)return null;
+      var volPct=(a/c)*Math.sqrt(252)*100;
+      return volPct>0?p/volPct:null;
+    });
+    var valid=sharpeVals.filter(function(v){return v!=null;});
+    var mean=valid.length?valid.reduce(function(s,v){return s+v;},0)/valid.length:0;
+    var std=valid.length>1?Math.sqrt(valid.reduce(function(s,v){return s+(v-mean)*(v-mean);},0)/valid.length):1;
+    if(std===0)std=1;
+    volData.forEach(function(r,i){
+      r.sharpe_z=sharpeVals[i]!=null?(sharpeVals[i]-mean)/std:null;
+    });
+
+    all=volData;
+    // Custom header for vol tab — adds Sharpe column
+    var h=document.getElementById('th-host');
+    h.innerHTML=
+      '<tr class="gh"><th class="blank" colspan="2"></th>'+
+      '<th colspan="4" class="gsep-lg gend">State + Flips</th>'+
+      '<th colspan="4" class="gsep gend">Core</th>'+
+      '<th colspan="1" class="gsep gend">Regime</th>'+
+      '<th colspan="3" class="gsep gend">Recent</th>'+
+      '<th colspan="1" class="gsep gend">Sharpe</th></tr>'+
+      '<tr class="ch">'+
+      '<th style="min-width:70px;padding-left:16px" onclick="sb(\'symbol\')">Ticker</th>'+
+      '<th style="min-width:80px;max-width:100px" onclick="sb(\'group_name\')">Group</th>'+
+      '<th class="gsep-lg tip" style="min-width:110px" onclick="sb(\'state_name\')">State</th>'+
+      '<th class="tip" style="min-width:28px;text-align:center" onclick="sb(\'flip_s\')">S</th>'+
+      '<th class="tip" style="min-width:28px;text-align:center" onclick="sb(\'flip_t\')">T</th>'+
+      '<th class="tip gend" style="min-width:28px;text-align:center" onclick="sb(\'flip_m\')">M</th>'+
+      '<th class="gsep tip" style="min-width:62px" onclick="sb(\'slope\')">Slope</th>'+
+      '<th class="tip" style="min-width:52px" onclick="sb(\'trend\')">Trend</th>'+
+      '<th class="tip" style="min-width:52px" onclick="sb(\'momentum\')">Trade</th>'+
+      '<th class="tip gend" style="min-width:50px" onclick="sb(\'z_score\')">z</th>'+
+      '<th class="gsep tip gend" style="min-width:120px" onclick="sb(\'regime\')">Regime</th>'+
+      '<th class="gsep tip" style="min-width:54px" onclick="sb(\'perf_1d\')">1D%</th>'+
+      '<th class="tip" style="min-width:54px" onclick="sb(\'perf_5d\')">5D%</th>'+
+      '<th class="tip gend" style="min-width:54px" onclick="sb(\'perf_1m\')">1M%</th>'+
+      '<th class="gsep tip gend" style="min-width:60px" onclick="sb(\'sharpe_z\')" data-tip="SHARPE SPREAD — 21-bar return divided by annualised ATR vol, z-scored vs group. Green = high Sharpe outlier (good risk-adjusted return). Red = poor. Backtested spread: 1.47.">Shrp-z</th>'+
+      '</tr>';
+
+    // Custom render for vol tab — extra sharpe_z column
+    filt=volData;sort();
+    tb.innerHTML=filt.map(function(r){
+      var isHeld=positions.has(r.symbol);
+      var nameEsc=(r.name||'').replace(/"/g,'&quot;');
+      var tk=isHeld?'<td class="held" title="'+nameEsc+'"><span style="color:'+W+';font-weight:600">'+r.symbol+'</span></td>':'<td title="'+nameEsc+'"><span style="color:'+W+';font-weight:600">'+r.symbol+'</span></td>';
+      return'<tr>'+tk+
+        '<td><span style="color:'+W+';max-width:100px;overflow:hidden;text-overflow:ellipsis;display:block;white-space:nowrap;font-size:11px">'+(r.group_name||'')+'</span></td>'+
+        '<td class="gsep-lg">'+stateCell(r.state_name)+'</td>'+
+        '<td style="text-align:center">'+flipCell(r.flip_s)+'</td>'+
+        '<td style="text-align:center">'+flipCell(r.flip_t)+'</td>'+
+        '<td class="gend" style="text-align:center">'+flipCell(r.flip_m)+'</td>'+
+        '<td class="gsep">'+slopeCell(r.slope)+'</td>'+
+        '<td>'+numSigned(r.trend)+'</td>'+
+        '<td>'+numSigned(r.momentum)+'</td>'+
+        '<td class="gend">'+zCell(r.z_score)+'</td>'+
+        '<td class="gsep gend">'+regimeCell(r.regime)+'</td>'+
+        '<td class="gsep">'+pctFmt(r.perf_1d)+'</td>'+
+        '<td>'+pctFmt(r.perf_5d)+'</td>'+
+        '<td class="gend">'+pctFmt(r.perf_1m)+'</td>'+
+        '<td class="gsep gend">'+sharpeCell(r.sharpe_z)+'</td>'+
+        '</tr>';
+    }).join('');
+  }catch(e){document.getElementById('tb').innerHTML='<tr><td colspan="20" class="msg" style="color:'+R+'">Error — '+e.message+'</td></tr>';}
 }
+
 async function loadMacroRiskRanges(){
   var host=document.getElementById('macro-host');host.innerHTML='<div class="msg">Loading…</div>';
   try{var res=await fetch(SURL+'/rest/v1/v_hedgeye_risk_ranges_live?select=*',{headers:H});if(!res.ok)throw new Error('ranges: '+res.status);var ranges=await res.json();
   var ad=ranges.filter(function(r){return!r.out_bucket;}).sort(function(a,b){return(GROUP_ORDER[a.group_name||a.category]||99)-(GROUP_ORDER[b.group_name||b.category]||99);});
   var hh='<tr class="gh"><th class="blank" colspan="3"></th><th colspan="4" class="gsep-lg gend">Hedgeye Range</th><th colspan="3" class="gsep">Live</th></tr><tr class="ch"><th style="min-width:70px;padding-left:16px">Symbol</th><th style="min-width:200px">Name</th><th style="min-width:110px">Group</th><th class="gsep-lg" style="min-width:90px">Trend</th><th style="min-width:80px">Buy</th><th style="min-width:80px">Sell</th><th class="gend" style="min-width:80px">Prev</th><th class="gsep" style="min-width:80px">Live</th><th style="min-width:70px">Pos</th><th style="min-width:70px">1D%</th></tr>';
-  var bh=ad.map(function(d){return'<tr><td><span style="color:'+W+'">'+( d.symbol||'')+'</span></td><td><span style="color:'+W+';font-size:11px;max-width:280px;overflow:hidden;text-overflow:ellipsis;display:inline-block;white-space:nowrap">'+(d.description||d.name||'')+'</span></td><td><span style="color:'+W+';font-size:11px">'+(d.group_name||d.category||'-')+'</span></td><td class="gsep-lg"><span style="color:'+rrTrendColor(d.trend)+'">'+(d.trend||'').toUpperCase()+'</span></td><td>'+rrFormatPrice(d.buy_level)+'</td><td>'+rrFormatPrice(d.sell_level)+'</td><td class="gend">'+rrFormatPrice(d.prev_close)+'</td><td class="gsep">'+rrFormatPrice(d.live_price)+'</td><td>'+rrPosCell(d.live_range_pct)+'</td><td>'+rrChgCell(d.intraday_chg_pct)+'</td></tr>';}).join('');
+  var bh=ad.map(function(d){return'<tr><td><span style="color:'+W+'">'+(d.symbol||'')+'</span></td><td><span style="color:'+W+';font-size:11px;max-width:280px;overflow:hidden;text-overflow:ellipsis;display:inline-block;white-space:nowrap">'+(d.description||d.name||'')+'</span></td><td><span style="color:'+W+';font-size:11px">'+(d.group_name||d.category||'-')+'</span></td><td class="gsep-lg"><span style="color:'+rrTrendColor(d.trend)+'">'+(d.trend||'').toUpperCase()+'</span></td><td>'+rrFormatPrice(d.buy_level)+'</td><td>'+rrFormatPrice(d.sell_level)+'</td><td class="gend">'+rrFormatPrice(d.prev_close)+'</td><td class="gsep">'+rrFormatPrice(d.live_price)+'</td><td>'+rrPosCell(d.live_range_pct)+'</td><td>'+rrChgCell(d.intraday_chg_pct)+'</td></tr>';}).join('');
   host.innerHTML='<table><thead>'+hh+'</thead><tbody>'+bh+'</tbody></table>';
   }catch(e){host.innerHTML='<div class="msg" style="color:'+R+'">Error — '+e.message+'</div>';}
 }
