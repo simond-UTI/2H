@@ -94,14 +94,30 @@ async function load(){
     if(view==='positions'){await loadPositions();}
     else{
       var wlFilter='&watchlist=in.('+encodeURIComponent(wl)+',BOTH)';
-      var [regRes,posRes]=await Promise.all([
+      var [regRes,posRes,flipRes]=await Promise.all([
         fetch(SURL+'/rest/v1/v_2h_regime?select='+REGIME_COLS+wlFilter+'&limit=300',{headers:H}),
-        fetch(SURL+'/rest/v1/positions?select=symbol',{headers:H})
+        fetch(SURL+'/rest/v1/positions?select=symbol',{headers:H}),
+        fetch(SURL+'/rest/v1/v_flip_daily_summary?select=symbol,flip_t_last,flip_m_last,flip_t_count,flip_m_count',{headers:H}).catch(function(){return{ok:false};})
       ]);
       if(!regRes.ok){var b=await regRes.text().catch(function(){return'';});throw new Error('regime: '+regRes.status+' — '+b.slice(0,250));}
       var regData=await regRes.json();
       if(posRes.ok){var pos=await posRes.json();positions=new Set(pos.map(function(p){return p.symbol;}));if(positions.has('BIT-XBTE'))positions.add('BTCUSD');}
-      all=regData.map(parseRow);
+      // Merge flip summary into regime data
+      var flipMap={};
+      if(flipRes.ok){var flipData=await flipRes.json();flipData.forEach(function(f){flipMap[f.symbol]=f;});}
+      all=regData.map(function(r){
+        var f=flipMap[r.symbol];
+        if(f){
+          // Use event-based flips where available, fall back to v_2h_regime instantaneous
+          r=Object.assign({},r,{
+            flip_t:f.flip_t_last!=null?f.flip_t_last:r.flip_t,
+            flip_m:f.flip_m_last!=null?f.flip_m_last:r.flip_m,
+            flip_t_count:f.flip_t_count||0,
+            flip_m_count:f.flip_m_count||0
+          });
+        }
+        return parseRow(r);
+      });
     }
     buildGroups();af();
   }catch(e){tb.innerHTML='<tr><td colspan="19" class="msg">Error — '+e.message+'</td></tr>';}
@@ -220,7 +236,7 @@ function slopeCell(v){if(v==null||isNaN(v))return dash;var f=parseFloat(v);retur
 function zCell(v){if(v==null||isNaN(v))return dash;var f=parseFloat(v);return'<span style="color:'+(f<=-1?G:f>=1?R:W)+'">'+(f>0?'+':'')+f.toFixed(2)+'</span>';}
 function rocCell(v){if(v==null||isNaN(v))return dash;var f=parseFloat(v);return'<span style="color:'+(f>1?G:f<-1?R:W)+'">'+(f>0?'+':'')+f.toFixed(1)+'</span>';}
 function stateCell(v){if(!v)return dash;var col=W;if(v==='BULL ACCEL'||v==='BULL ESTAB')col=G;else if(v==='BEAR DECEL'||v==='BEAR ACCEL')col=R;return'<span style="color:'+col+'">'+v+'</span>';}
-function flipCell(v){var n=parseInt(v)||0;if(n===0)return dash;return'<span style="color:'+(n>0?G:R)+'">'+(n>0?'▲':'▼')+'</span>';}
+function flipCell(v,count){var n=parseInt(v)||0;var c=parseInt(count)||0;if(n===0)return dash;var arrow='<span style="color:'+(n>0?G:R)+'">'+(n>0?'▲':'▼')+'</span>';return c>1?arrow+'<span style="color:rgba(255,255,255,0.4);font-size:10px">'+c+'</span>':arrow;}
 var REGIME_COL={'BUY':G,'HOLD':W,'WATCH':W,'TRIM':R,'REDUCE':R,'EXIT':R,'STALE':'rgba(255,255,255,0.35)'};
 function regimeCell(v){if(!v||v==='—')return dash;return'<span style="color:'+(REGIME_COL[v]||W)+'">'+v+'</span>';}
 function portPctCell(v){if(v==null||isNaN(v))return dash;return'<span style="color:'+W+'">'+parseFloat(v).toFixed(1)+'%</span>';}
@@ -254,8 +270,8 @@ function render(){
       sz+
       '<td class="gsep-lg">'+stateCell(r.state_name)+'</td>'+
       '<td style="text-align:center">'+flipCell(r.flip_s)+'</td>'+
-      '<td style="text-align:center">'+flipCell(r.flip_t)+'</td>'+
-      '<td class="gend" style="text-align:center">'+flipCell(r.flip_m)+'</td>'+
+      '<td style="text-align:center">'+flipCell(r.flip_t,r.flip_t_count)+'</td>'+
+      '<td class="gend" style="text-align:center">'+flipCell(r.flip_m,r.flip_m_count)+'</td>'+
       '<td class="gsep">'+slopeCell(r.slope)+'</td>'+
       '<td>'+numSigned(r.trend)+'</td>'+
       '<td>'+numSigned(r.momentum)+'</td>'+
