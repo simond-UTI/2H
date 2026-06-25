@@ -10,7 +10,8 @@
     <span class="tab" id="tabMacro" onclick="setView('macro')">[MACRO]</span>
   </div>
   <span class="nav-link" onclick="openSpec()" title="System specification">[SPEC]</span>
-  <a class="nav-link" href="https://simond-uti.github.io/2H/crossover_radar.html" target="_blank" title="Crossover radar">[RADAR]</a>
+  <a class="nav-link" href="https://simond-uti.github.io/2H/crossover_radar.html" target="_blank" title="Zone radar — Trend vs Trade position">[ZONE]</a>
+  <a class="nav-link" href="https://simond-uti.github.io/2H/velocity_radar.html" target="_blank" title="Velocity radar — Trend Slope vs Rotation">[VELOCITY]</a>
   <span class="nav-link" id="wltoggle" onclick="toggleWL()" style="margin-left:8px" title="Toggle UK / US">UK</span>
   <div class="sr"><input id="sr" placeholder="Search…" oninput="af()"></div>
 </div>
@@ -72,17 +73,20 @@ function tip(key){
 }
 function tipAttr(key){var s=tip(key);return s?' data-tip="'+s.replace(/"/g,'&quot;')+'"':'';}
 
-var REGIME_COLS='symbol,name,group_name,watchlist,trend,momentum,state_name,slope_annual_pct,z_score,perf_1d,perf_5d,perf_1m,flip_s,flip_t,flip_m,regime,chan_w_pct';
+var REGIME_COLS='symbol,name,group_name,watchlist,trend,momentum,state_name,slope_annual_pct,z_score,perf_1d,perf_5d,perf_1m,flip_s,flip_t,flip_m,regime,chan_w_pct,atr,close';
 var VOL_COLS='symbol,name,group_name,watchlist,trend,momentum,state_name,slope_annual_pct,z_score,perf_1d,perf_5d,perf_1m,flip_s,flip_t,flip_m,regime,perf_1m,atr,close';
 var all=[],filt=[],positions=new Set(),positionSizing={};
 var sc='trend',sd=-1,wl='UK ETFS',grp='',state='',regime='',view='universe',macroPreset='riskranges';
 
 function parseRow(r){
+  var atr=parseFloat(r.atr),close=parseFloat(r.close);
+  var atr_pct=(atr>0&&close>0)?(atr/close*100):null;
   return Object.assign({},r,{
     slope:r.slope_annual_pct!=null?parseFloat(r.slope_annual_pct):null,
     z_score:r.z_score!=null?parseFloat(r.z_score):null,
     chan_w_pct:r.chan_w_pct!=null?parseFloat(r.chan_w_pct):null,
-    flip_s:parseInt(r.flip_s)||0,flip_t:parseInt(r.flip_t)||0,flip_m:parseInt(r.flip_m)||0
+    flip_s:parseInt(r.flip_s)||0,flip_t:parseInt(r.flip_t)||0,flip_m:parseInt(r.flip_m)||0,
+    atr_pct:atr_pct
   });
 }
 async function load(){
@@ -110,18 +114,18 @@ async function loadPositions(){
   positions=new Set(pos.map(function(p){return p.symbol;}).filter(function(s){return s&&s!=='CASH'&&s!=='Cash';}));
   if(positions.has('BIT-XBTE'))positions.add('BTCUSD');
   var symList=Array.from(positions).map(encodeURIComponent).join(',');
-  var [sizeRes,regRes]=await Promise.all([
-    fetch(SURL+'/rest/v1/v_positions_with_sizing?select=symbol,portfolio_pct,effective_max_pct,pct_of_max,value_gbp',{headers:H}),
-    fetch(SURL+'/rest/v1/v_2h_regime?select='+REGIME_COLS+'&symbol=in.('+symList+')&limit=100',{headers:H})
-  ]);
-  if(!sizeRes.ok)throw new Error('sizing: '+sizeRes.status);
+  // Fetch independently so a sizing 500 doesn't kill regime display
+  var sizeRes=await fetch(SURL+'/rest/v1/v_positions_with_sizing?select=symbol,portfolio_pct,effective_max_pct,pct_of_max,value_gbp',{headers:H}).catch(function(){return{ok:false};});
+  var regRes=await fetch(SURL+'/rest/v1/v_2h_regime?select='+REGIME_COLS+'&symbol=in.('+symList+')&limit=100',{headers:H});
   if(!regRes.ok){var b=await regRes.text().catch(function(){return'';});throw new Error('regime: '+regRes.status+' — '+b.slice(0,200));}
   positionSizing={};
-  (await sizeRes.json()).forEach(function(s){
-    if(!s.symbol||s.symbol==='CASH'||s.symbol==='Cash')return;
-    var entry={portfolio_pct:parseFloat(s.portfolio_pct)||0,effective_max_pct:parseFloat(s.effective_max_pct)||0,pct_of_max:parseFloat(s.pct_of_max)||0,value_gbp:parseFloat(s.value_gbp)||0};
-    positionSizing[s.symbol]=entry;if(s.symbol==='BIT-XBTE')positionSizing['BTCUSD']=entry;
-  });
+  if(sizeRes.ok){
+    (await sizeRes.json()).forEach(function(s){
+      if(!s.symbol||s.symbol==='CASH'||s.symbol==='Cash')return;
+      var entry={portfolio_pct:parseFloat(s.portfolio_pct)||0,effective_max_pct:parseFloat(s.effective_max_pct)||0,pct_of_max:parseFloat(s.pct_of_max)||0,value_gbp:parseFloat(s.value_gbp)||0};
+      positionSizing[s.symbol]=entry;if(s.symbol==='BIT-XBTE')positionSizing['BTCUSD']=entry;
+    });
+  }
   all=(await regRes.json()).map(function(r){return Object.assign(parseRow(r),positionSizing[r.symbol]||{});});
 }
 
@@ -155,7 +159,7 @@ function renderHeader(){
   h.innerHTML=
     '<tr class="gh"><th class="blank" colspan="2"></th>'+sizeGH+
     '<th colspan="4" class="gsep-lg gend">State + Flips</th>'+
-    '<th colspan="5" class="gsep gend">Core</th>'+
+    '<th colspan="6" class="gsep gend">Core</th>'+
     '<th colspan="1" class="gsep gend">Regime</th>'+
     '<th colspan="3" class="gsep gend">Recent</th></tr>'+
     '<tr class="ch">'+
@@ -171,6 +175,7 @@ function renderHeader(){
     '<th class="tip" style="min-width:52px" onclick="sb(\'momentum\')"'+tipAttr('trade')+'>Trade</th>'+
     '<th class="tip" style="min-width:50px" onclick="sb(\'z_score\')"'+tipAttr('z')+'>z</th>'+
     '<th class="tip gend" style="min-width:56px" onclick="sb(\'chan_w_pct\')" data-tip="CHANW% — Channel width: dispersion of price around its own 63-bar regression line (same series z is drawn from). Magnitude amplifier on BUY only — tested at +11.06%/21d vs +7.90% narrow on already-qualifying BUY rows, similar hit rate. Not validated for other regimes; does not set direction or timing.">ChanW%</th>'+
+    '<th class="tip" style="min-width:52px" onclick="sb(\'atr_pct\')" data-tip="ATR% — ATR as % of price. Green less than 1% stable/liquid, Red greater than 3% volatile/thin.">ATR%</th>'+
     '<th class="gsep tip gend" style="min-width:120px" onclick="sb(\'regime\')"'+tipAttr('regime')+'>Regime</th>'+
     '<th class="gsep tip" style="min-width:54px" onclick="sb(\'perf_1d\')" data-tip="1D% — Today\'s return">1D%</th>'+
     '<th class="tip" style="min-width:54px" onclick="sb(\'perf_5d\')" data-tip="5D% — 5-bar return">5D%</th>'+
@@ -224,6 +229,7 @@ function maxPctCell(v){if(v==null||isNaN(v))return dash;return'<span style="colo
 function pctMaxCell(v){if(v==null||isNaN(v))return dash;var f=parseFloat(v);return'<span style="color:'+(f>100?R:W)+'">'+Math.round(f)+'%</span>';}
 function valueCell(v){if(v==null||isNaN(v))return dash;return'<span style="color:'+W+'">£'+Math.round(parseFloat(v)).toLocaleString('en-GB')+'</span>';}
 // Sharpe spread z-score cell: green = high Sharpe outlier, red = low
+function atrPctCell(v){if(v==null||isNaN(v))return dash;var f=parseFloat(v);return'<span style="color:'+(f>3?R:f<1?G:W)+'">'+f.toFixed(2)+'%</span>';}
 function sharpeCell(v){if(v==null||isNaN(v))return dash;var f=parseFloat(v);return'<span style="color:'+(f>=1?G:f<=-1?R:W)+'">'+(f>0?'+':'')+f.toFixed(2)+'</span>';}
 // Channel width cell: magnitude amplifier, only colours green when BUY + above the displayed BUY median (validated condition); white otherwise — not a direction signal
 function chanWCell(v,regime,buyMedian){
@@ -256,6 +262,7 @@ function render(){
       '<td>'+numSigned(r.momentum)+'</td>'+
       '<td>'+zCell(r.z_score)+'</td>'+
       '<td class="gend">'+chanWCell(r.chan_w_pct,r.regime,buyMedian)+'</td>'+
+      '<td>'+atrPctCell(r.atr_pct)+'</td>'+
       '<td class="gsep gend">'+regimeCell(r.regime)+'</td>'+
       '<td class="gsep">'+pctFmt(r.perf_1d)+'</td>'+
       '<td>'+pctFmt(r.perf_5d)+'</td>'+
@@ -263,18 +270,18 @@ function render(){
   }).join('');
 }
 
-// === PORTFOLIO (unchanged) ===
+// === PORTFOLIO ===
 async function loadPortfolio(){
   var host=document.getElementById('portfolio-host');host.textContent='Loading…';
   try{
-    var [perfRes,accRes,sizeRes,benchRes]=await Promise.all([
-      fetch(SURL+'/rest/v1/v_portfolio_performance?select=*',{headers:H}),
-      fetch(SURL+'/rest/v1/positions?select=account,symbol,value_gbp',{headers:H}),
-      fetch(SURL+'/rest/v1/v_positions_with_sizing?select=symbol,value_gbp,group_name,sub_group,portfolio_pct',{headers:H}),
-      fetch(SURL+'/rest/v1/v_crossover_states?symbol=in.(SPX,NDX,RUT)&select=symbol,perf_1d,perf_5d,perf_1m,perf_3m',{headers:H})
-    ]);
-    if(!perfRes.ok)throw new Error('performance: '+perfRes.status);if(!accRes.ok)throw new Error('accounts: '+accRes.status);if(!sizeRes.ok)throw new Error('sizing: '+sizeRes.status);
-    renderPortfolio(await perfRes.json(),await accRes.json(),await sizeRes.json(),benchRes.ok?await benchRes.json():[]);
+    // Fetch independently — sizing and benchmarks failing should not kill the whole portfolio tab
+    var perfRes=await fetch(SURL+'/rest/v1/v_portfolio_performance?select=*',{headers:H});
+    var accRes=await fetch(SURL+'/rest/v1/positions?select=account,symbol,value_gbp',{headers:H});
+    var sizeRes=await fetch(SURL+'/rest/v1/v_positions_with_sizing?select=symbol,value_gbp,group_name,sub_group,portfolio_pct',{headers:H}).catch(function(){return{ok:false};});
+    var benchRes=await fetch(SURL+'/rest/v1/v_crossover_states?symbol=in.(SPX,NDX,RUT)&select=symbol,perf_1d,perf_5d,perf_1m,perf_3m',{headers:H}).catch(function(){return{ok:false};});
+    if(!perfRes.ok)throw new Error('performance: '+perfRes.status);
+    if(!accRes.ok)throw new Error('accounts: '+accRes.status);
+    renderPortfolio(await perfRes.json(),await accRes.json(),sizeRes.ok?await sizeRes.json():[],benchRes.ok?await benchRes.json():[]);
   }catch(e){host.innerHTML='<div style="padding:40px 0;color:'+R+'">Error — '+e.message+'</div>';}
 }
 function gbp(v){if(v==null||isNaN(v))return'-';return'£'+Math.round(parseFloat(v)).toLocaleString('en-GB');}
