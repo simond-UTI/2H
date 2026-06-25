@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -34,7 +35,7 @@ input[type="text"]{padding:5px 9px;background:#151515;border:1px solid #2a2a2a;b
 .ghost{position:absolute;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:4}
 .dot{position:absolute;width:10px;height:10px;border-radius:50%;transform:translate(-50%,-50%);cursor:pointer;transition:all 0.12s;z-index:10;border:1.5px solid rgba(0,0,0,0.4)}
 .dot:hover{transform:translate(-50%,-50%) scale(1.9);z-index:100}
-.dot.held{box-shadow:0 0 0 2.5px #fff}
+.dot.held{box-shadow:0 0 0 2.5px #fff;width:13px;height:13px;z-index:20}
 .dot.hl{box-shadow:0 0 0 3px rgba(255,255,255,0.8);z-index:50}
 .sig-rising   {background:#4ade80}
 .sig-recovering{background:#86efac}
@@ -99,6 +100,7 @@ input[type="text"]{padding:5px 9px;background:#151515;border:1px solid #2a2a2a;b
   <input type="text" id="inpSearch" placeholder="Search...">
   <select id="selState"><option value="">All States</option><option value="BULL ACCEL">Bull Accel</option><option value="BULL ESTAB">Bull Estab</option><option value="BULL FADING">Bull Fading</option><option value="EARLY RECV">Early Recv</option><option value="BEAR DECEL">Bear Decel</option><option value="BEAR ACCEL">Bear Accel</option></select>
   <select id="selZone"><option value="">All Zones</option><option value="Z1">Z1 (entry)</option><option value="Z2">Z2 (T40M40)</option><option value="Z3">Z3 (T60M60)</option><option value="Z4">Z4 ★ (T80M80)</option></select>
+  <select id="selRegime"><option value="">All Regimes</option><option value="BUY">BUY</option><option value="HOLD">HOLD</option><option value="WATCH">WATCH</option><option value="TRIM">TRIM</option><option value="REDUCE">REDUCE</option><option value="EXIT">EXIT</option><option value="STALE">STALE</option></select>
   <select id="selGroup"><option value="">All Groups</option></select>
   <select id="selWatchlist"><option value="">All Universe</option><option value="UK ETFS" selected>UK ETFs</option><option value="MAIN">US / Main</option><option value="BOTH">Both</option></select>
   <button id="btnHeld">My Positions</button>
@@ -108,7 +110,7 @@ input[type="text"]{padding:5px 9px;background:#151515;border:1px solid #2a2a2a;b
 </div>
 <div class="main-layout">
   <div class="chart-wrapper">
-    <div class="y-axis-label">Momentum</div>
+    <div class="y-axis-label">Trade</div>
     <div class="chart-container">
       <div class="chart-area" id="CA"></div>
       <div class="x-axis-label">Trend</div>
@@ -121,9 +123,8 @@ input[type="text"]{padding:5px 9px;background:#151515;border:1px solid #2a2a2a;b
   </div>
 </div>
 <div class="legend">
-  <div class="leg"><div class="ld" style="background:#4ade80"></div>Mom building (5d+)</div>
-  <div class="leg"><div class="ld" style="background:#fbbf24"></div>Flat</div>
-  <div class="leg"><div class="ld" style="background:#f87171"></div>Mom fading (5d-)</div>
+  <div class="leg"><div class="ld" style="background:#4ade80;box-shadow:0 0 0 2px #fff"></div>Held position</div>
+  <div class="leg"><div class="ld" style="background:rgba(255,255,255,0.5)"></div>Universe</div>
   <div class="leg-sep"></div>
   <div class="leg" style="color:#f87171">&#9475; T=10 Wall</div>
   <div class="leg" style="color:#aaa">&#8213; M=T</div>
@@ -134,7 +135,7 @@ const SB='https://pzskvslhfaituzyukasl.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6c2t2c2xoZmFpdHV6eXVrYXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwNzQyNTAsImV4cCI6MjA3OTY1MDI1MH0.FEZTIIQ4zgdb7uswf70XZI9Ph6ykSeDkfxooIcRIOMw';
 const H={'apikey':SK,'Authorization':'Bearer '+SK};
 let data=[],held=new Set(),src='intraday',trails=true,heldOnly=false,hl=null;
-let fState='',fGroup='',fWatch='UK ETFS';
+let fState='',fGroup='',fWatch='UK ETFS',fRegime='';
 let fZone='';
 const CA=document.getElementById('CA'),TT=document.getElementById('TT'),RL=document.getElementById('RL');
 
@@ -178,7 +179,7 @@ function getZone(t,m){
   return'NEGATIVE';
 }
 function getZoneMove(d){
-  var t=parseFloat(d.trend)||0,m=parseFloat(d.mom)||0;
+  var t=parseFloat(d.trend)||0,m=parseFloat(d.momentum)||0;
   var td1=parseFloat(d.trend_d1)||0,md1=parseFloat(d.mom_d1)||0;
   if(td1===0&&md1===0)return null;
   var ty=t-td1,my=m-md1;
@@ -197,10 +198,11 @@ function matchFilter(d){
   if(heldOnly&&!held.has(d.symbol))return false;
   if(fState&&d.state_name!==fState)return false;
   if(fGroup&&d.group_name!==fGroup)return false;
-  if(fWatch&&d.watchlist!==fWatch)return false;
+  if(fWatch&&fWatch!=='BOTH'&&d.watchlist!==fWatch)return false;
   /* ADDED: zone filter — exact zone match */
+  if(fRegime&&(d.regime||'')!==fRegime)return false;
   if(fZone){
-    var t=parseFloat(d.trend)||0,m=parseFloat(d.mom)||0;
+    var t=parseFloat(d.trend)||0,m=parseFloat(d.momentum)||0;
     if(getZone(t,m)!==fZone)return false;
   }
   return true;
@@ -305,23 +307,23 @@ function drawLine(x0,y0,x1,y1,col,op,sym){
 function drawPoints(){
   CA.querySelectorAll('.dot,.dot-label,.ghost,.trail-line').forEach(function(e){e.remove()});
   filtered().forEach(function(d){
-    var t=clamp(parseFloat(d.trend)||0),m=clamp(parseFloat(d.mom)||0);
+    var t=clamp(parseFloat(d.trend)||0),m=clamp(parseFloat(d.momentum)||0);
     var col=sigDotCol(d);
     var x=tX(t),y=mY(m);
     if(trails&&d.trend_d1!==undefined&&d.trend_d1!==null){
       var td1=parseFloat(d.trend_d1)||0,md1=parseFloat(d.mom_d1)||0;
       var td5=parseFloat(d.trend_d5)||0,md5=parseFloat(d.mom_d5)||0;
       var t1=clamp(t-td1),m1=clamp(m-md1),t5=clamp(t-td5),m5=clamp(m-md5);
-      drawLine(tX(t5),mY(m5),tX(t1),mY(m1),col,0.22,d.symbol);
-      drawLine(tX(t1),mY(m1),x,y,col,0.45,d.symbol);
+      drawLine(tX(t5),mY(m5),tX(t1),mY(m1),'#fff',0.15,d.symbol);
+      drawLine(tX(t1),mY(m1),x,y,'#fff',0.35,d.symbol);
       var g5=document.createElement('div');g5.className='ghost';g5.dataset.sym=d.symbol;
-      g5.style.left=tX(t5)+'px';g5.style.top=mY(m5)+'px';g5.style.width='4px';g5.style.height='4px';g5.style.background=col;g5.style.opacity='0.28';CA.appendChild(g5);
+      g5.style.left=tX(t5)+'px';g5.style.top=mY(m5)+'px';g5.style.width='4px';g5.style.height='4px';g5.style.background='#888';g5.style.opacity='0.28';CA.appendChild(g5);
       var g1=document.createElement('div');g1.className='ghost';g1.dataset.sym=d.symbol;
-      g1.style.left=tX(t1)+'px';g1.style.top=mY(m1)+'px';g1.style.width='5px';g1.style.height='5px';g1.style.background=col;g1.style.opacity='0.45';CA.appendChild(g1);
+      g1.style.left=tX(t1)+'px';g1.style.top=mY(m1)+'px';g1.style.width='5px';g1.style.height='5px';g1.style.background='#aaa';g1.style.opacity='0.45';CA.appendChild(g1);
     }
     var dot=document.createElement('div');
-    dot.className='dot '+sigDotCls(d)+(held.has(d.symbol)?' held':'')+(d.symbol===hl?' hl':'');
-    dot.style.left=x+'px';dot.style.top=y+'px';dot.dataset.sym=d.symbol;
+    dot.className='dot'+(held.has(d.symbol)?' held':'')+(d.symbol===hl?' hl':'');
+    dot.style.left=x+'px';dot.style.top=y+'px';dot.style.background=held.has(d.symbol)?'#4ade80':'rgba(255,255,255,0.5)';dot.dataset.sym=d.symbol;
     dot.addEventListener('mouseenter',function(e){showTT(d,e)});
     dot.addEventListener('mousemove',posTT);
     dot.addEventListener('mouseleave',function(){hideTT()});
@@ -340,7 +342,7 @@ function renderList(){
     return(parseFloat(b.trend)||0)-(parseFloat(a.trend)||0);
   });
   RL.innerHTML=sorted.map(function(d){
-    var t=parseFloat(d.trend)||0,m=parseFloat(d.mom)||0;
+    var t=parseFloat(d.trend)||0,m=parseFloat(d.momentum)||0;
     var zNow=getZone(t,m);
     var zoneCol=ZONE_COL[zNow]||'#fff';
     // Zone column: Z1-Z4 label in zone colour, blank for NEGATIVE
@@ -384,21 +386,24 @@ function hlSet(s){
 
 // ORIGINAL showTT — verbatim
 function showTT(d,e){
-  var t=parseFloat(d.trend)||0,m=parseFloat(d.mom)||0;
+  var t=parseFloat(d.trend)||0,m=parseFloat(d.momentum)||0;
   var p1=parseFloat(d.perf_1d)||0,p5=parseFloat(d.perf_5d)||0;
-  var rsi=parseFloat(d.rsi)||0;
+  var slope=parseFloat(d.slope_annual_pct);
+  var z=parseFloat(d.z_score);
+  var reg=d.regime||'';
+  var regCol={'BUY':'#4ade80','HOLD':'#fff','WATCH':'#fff','TRIM':'#ff1744','REDUCE':'#ff1744','EXIT':'#ff1744','STALE':'#555'}[reg]||'#fff';
   TT.innerHTML=
     '<div class="tt-sym">'+d.symbol+'</div>'
     +'<div class="tt-name">'+(d.name||'')+'</div>'
-    +'<div class="tt-badges">'+fmtState(d.state_name)+'</div>'
-    +'<div class="tt-trail-row"><span class="tt-trail-lbl">Trail:</span>'+fmtTrail(d.arrow_trail)+'</div>'
+    +'<div class="tt-badges">'+fmtState(d.state_name)+(reg?'<span class="state-badge" style="background:transparent;border:1px solid '+regCol+';color:'+regCol+'">'+reg+'</span>':'')+'</div>'
     +'<div class="tt-sep"></div>'
     +'<div class="tt-grid">'
     +'<div class="tt-row"><span class="tt-lbl">Trend</span><span class="tt-val '+(t>=0?'pos':'neg')+'">'+t.toFixed(1)+'</span></div>'
-    +'<div class="tt-row"><span class="tt-lbl">Momentum</span><span class="tt-val '+(m>=0?'pos':'neg')+'">'+m.toFixed(1)+'</span></div>'
+    +'<div class="tt-row"><span class="tt-lbl">Trade</span><span class="tt-val '+(m>=0?'pos':'neg')+'">'+m.toFixed(1)+'</span></div>'
+    +(isNaN(slope)?'':'<div class="tt-row"><span class="tt-lbl">Slope</span><span class="tt-val '+(slope>0?'pos':'neg')+'">'+(slope>0?'+':'')+slope.toFixed(1)+'%</span></div>')
+    +(isNaN(z)?'':'<div class="tt-row"><span class="tt-lbl">z</span><span class="tt-val '+(z<=-0.7?'pos':z>=1.0?'neg':'')+'">'+z.toFixed(2)+'</span></div>')
     +'<div class="tt-row"><span class="tt-lbl">1d%</span><span class="tt-val '+(p1>=0?'pos':'neg')+'">'+(p1>=0?'+':'')+p1.toFixed(2)+'%</span></div>'
     +'<div class="tt-row"><span class="tt-lbl">5d%</span><span class="tt-val '+(p5>=0?'pos':'neg')+'">'+(p5>=0?'+':'')+p5.toFixed(2)+'%</span></div>'
-    +(rsi?'<div class="tt-row"><span class="tt-lbl">RSI</span><span class="tt-val '+(rsi>70?'neg':rsi<30?'pos':'')+'">'+rsi.toFixed(0)+'</span></div>':'')
     +'</div>'
     +(d.group_name?'<div class="tt-grp">'+d.group_name+'</div>':'');
   TT.classList.add('show');posTT(e);
@@ -411,18 +416,43 @@ async function load(){
   try{
     var pR=await fetch(SB+'/rest/v1/positions?select=symbol',{headers:H});
     if(pR.ok){var p=await pR.json();held=new Set(p.map(function(r){return r.symbol}));if(held.has('BIT-XBTE'))held.add('BTCUSD')}
-    var vw=src==='eod'?'v_universe_clean_eod':'v_universe_clean';
-    var vR=await fetch(SB+'/rest/v1/'+vw+'?select=*',{headers:H});
-    if(!vR.ok)throw new Error('Fetch failed');
-    data=await vR.json();
-    var sR=await fetch(SB+'/rest/v1/mv_signals_maths?select=symbol,trend_d1,trend_d5,mom_d1,mom_d5',{headers:H});
-    if(sR.ok){
-      var sig=await sR.json();
-      var sigMap={};sig.forEach(function(r){sigMap[r.symbol]=r});
-      data.forEach(function(d){var s=sigMap[d.symbol];if(s){d.trend_d1=s.trend_d1;d.trend_d5=s.trend_d5;d.mom_d1=s.mom_d1;d.mom_d5=s.mom_d5;}});
+    // Intraday: v_2h_regime (live). EOD: mv_signals_maths (daily close)
+    if(src==='eod'){
+      var eodR=await fetch(SB+'/rest/v1/mv_signals_maths?select=symbol,name,group_name,watchlist,trend,mom,state_name,perf_1d,perf_5d,prev_mom,prev5_mom,prev_trend,prev5_trend&limit=500',{headers:H});
+      if(!eodR.ok)throw new Error('Fetch failed');
+      var raw=await eodR.json();
+      data=raw.map(function(r){return Object.assign({},r,{
+        momentum:r.mom,
+        mom_d1:r.prev_mom!=null?r.mom-r.prev_mom:0,
+        mom_d5:r.prev5_mom!=null?r.mom-r.prev5_mom:0,
+        trend_d1:r.prev_trend!=null?r.trend-r.prev_trend:0,
+        trend_d5:r.prev5_trend!=null?r.trend-r.prev5_trend:0
+      });});
+    } else {
+      // Fetch all watchlists - filtering is done client-side in matchFilter
+      var vR=await fetch(SB+'/rest/v1/v_2h_regime?select=symbol,name,group_name,watchlist,trend,momentum,state_name,slope_annual_pct,z_score,regime,perf_1d,perf_5d&limit=500',{headers:H});
+      if(!vR.ok)throw new Error('Fetch failed');
+      data=await vR.json();
+      // Initialise trail fields — will be populated by mv_signals_maths join below
+      data.forEach(function(d){d.trend_d1=null;d.trend_d5=null;d.mom_d1=null;d.mom_d5=null;d.arrow_trail='';});
+      var sR=await fetch(SB+'/rest/v1/mv_signals_maths?select=symbol,prev_trend,prev5_trend,prev_mom,prev5_mom,arrow_trail&limit=500',{headers:H});
+      if(sR.ok){
+        var sig=await sR.json();
+        var sigMap={};sig.forEach(function(r){sigMap[r.symbol]=r});
+        data.forEach(function(d){
+          var s=sigMap[d.symbol];
+          if(s){
+            d.trend_d1=s.prev_trend!=null?d.trend-s.prev_trend:0;
+            d.trend_d5=s.prev5_trend!=null?d.trend-s.prev5_trend:0;
+            d.mom_d1=s.prev_mom!=null?d.momentum-s.prev_mom:0;
+            d.mom_d5=s.prev5_mom!=null?d.momentum-s.prev5_mom:0;
+            d.arrow_trail=s.arrow_trail||'';
+          }
+        });
+      }
     }
     if(data.length>0){
-      var latest=data.reduce(function(mx,r){var d=new Date(r.updated_at);return d>mx?d:mx},new Date(0));
+      var latest=new Date();
       document.getElementById('ts').textContent=(src==='eod'?'EOD':'Live')+': '+latest.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+latest.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
     }
     var grps=[...new Set(data.map(function(d){return d.group_name}).filter(Boolean))].sort();
@@ -437,24 +467,29 @@ document.getElementById('btnRefresh').addEventListener('click',function(){docume
 document.getElementById('selSource').addEventListener('change',function(e){src=e.target.value;load()});
 document.getElementById('inpSearch').addEventListener('input',refresh);
 document.getElementById('selState').addEventListener('change',function(e){fState=e.target.value;refresh()});
+document.getElementById('selRegime').addEventListener('change',function(e){fRegime=e.target.value;refresh()});
 document.getElementById('selZone').addEventListener('change',function(e){fZone=e.target.value;refresh()});
 document.getElementById('selGroup').addEventListener('change',function(e){fGroup=e.target.value;refresh()});
-document.getElementById('selWatchlist').addEventListener('change',function(e){fWatch=e.target.value;refresh()});
+document.getElementById('selWatchlist').addEventListener('change',function(e){fWatch=e.target.value;load()});
 document.getElementById('btnHeld').addEventListener('click',function(e){heldOnly=!heldOnly;e.target.classList.toggle('active',heldOnly);refresh()});
 document.getElementById('btnTrails').addEventListener('click',function(e){trails=!trails;e.target.classList.toggle('active',trails);refresh()});
 document.getElementById('btnClear').addEventListener('click',function(){
-  fState='';fGroup='';fWatch='UK ETFS';heldOnly=false;trails=true;hl=null;
+  fState='';fGroup='';fWatch='UK ETFS';heldOnly=false;trails=true;hl=null;fRegime='';
   fZone='';
   document.getElementById('inpSearch').value='';document.getElementById('selState').value='';
-  document.getElementById('selZone').value='';
+  document.getElementById('selZone').value='';document.getElementById('selRegime').value='';
   document.getElementById('selGroup').value='';document.getElementById('selWatchlist').value='UK ETFS';
   document.getElementById('btnHeld').classList.remove('active');
   document.getElementById('btnTrails').classList.add('active');
-  refresh();
+  load();
 });
 window.addEventListener('resize',refresh);
 document.getElementById('CA').addEventListener('click',function(){hlSet(null);});
 load();
+</script>
+</body>
+</html>
+
 </script>
 </body>
 </html>
